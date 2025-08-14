@@ -1,0 +1,19 @@
+1) Install oc CLI
+wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.19/openshift-client-linux-4.19.7.tar.gz
+tar -xvzf openshift-client-linux-4.19.7.tar.gz
+mv kubectl oc /usr/local/bin/
+echo 'source <(oc completion bash)' >> ~/.bashrc
+echo 'source <(kubectl completion bash)' >> ~/.bashrc
+
+2) Install butane 
+
+wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/latest/butane 
+chmod +x butane
+mv butane /usr/local/bin/
+
+3) Donwload openshift install
+ wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz
+
+
+
+
