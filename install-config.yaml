@@ -1,0 +1,42 @@
+apiVersion: v1
+baseDomain: <basedomain.com>
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  replicas: 0
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  replicas: 3
+  platform:
+    baremetal: {}
+metadata:
+  name: <cluster-name>
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 172.21.46.0/24
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  baremetal:
+    apiVIPs:
+      - 172.21.46.20  <<-- API VIP IP
+    ingressVIPs:
+      - 172.21.46.21   <<-- Ingress VIP IP
+pullSecret: 'Pull-secret'
+sshKey: 'ssh-public-key'
+proxy:
+  httpProxy: http://<username>:<pswd>@<ip>:<port>
+  httpsProxy: https://<username>:<pswd>@<ip>:<port>
+  noProxy: example.com   
+additionalTrustBundle: |  
+    -----BEGIN CERTIFICATE-----
+    <MY_TRUSTED_CA_CERT>
+    -----END CERTIFICATE-----
+additionalTrustBundlePolicy: <policy_to_add_additionalTrustBundle
