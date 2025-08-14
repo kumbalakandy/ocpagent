@@ -1,0 +1,180 @@
+apiVersion: v1alpha1
+kind: AgentConfig
+metadata:
+  name: pure-agent1
+rendezvousIP: 172.21.46.31
+hosts:
+  - hostname: master01.pure-agent1.kodevirtual.com
+    role: master
+    rootDeviceHints:
+      wwn: "0x6000c29ac73bfa5e85792d7671c8dd36"
+    interfaces:
+      - name: ens192
+        macAddress: 00:50:56:a6:b6:01
+      - name: ens224
+        macAddress: 00:50:56:a6:b6:11
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: false
+          mtu: 9000
+        - name: ens224
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: false
+          mtu: 9000
+        - name: bond0
+          description: Bond with ports ens192 and ens224
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: "100"
+            port:
+              - ens192
+              - ens224
+          mtu: 9000
+        - name: bond0.2146
+          description: vlan 2146 on ens192
+          type: vlan
+          state: up
+          vlan:
+            id: 2146
+            base-iface: bond0
+          ipv4:
+            address:
+              - ip: 172.21.46.31
+                prefix-length: 24
+            enabled: true
+          mtu: 9000
+      dns-resolver:
+        config:
+          server:
+            - 172.16.101.9
+            - 172.16.101.10
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 172.21.46.1
+          next-hop-interface: bond0.2146
+  - hostname: master02.pure-agent1.kodevirtual.com
+    role: master
+    rootDeviceHints:
+      wwn: "0x6000c2982f5f2964de412bebe17b9eb1"
+    interfaces:
+      - name: ens192
+        macAddress: 00:50:56:a6:b6:02
+      - name: ens224
+        macAddress: 00:50:56:a6:b6:12
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: false
+          mtu: 9000
+        - name: ens224
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: false
+          mtu: 9000
+        - name: bond0
+          description: Bond with ports ens192 and ens224
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: "100"
+            port:
+              - ens192
+              - ens224
+          mtu: 9000
+        - name: bond0.2146
+          description: vlan 2146 on ens192
+          type: vlan
+          state: up
+          vlan:
+            id: 2146
+            base-iface: bond0
+          ipv4:
+            address:
+              - ip: 172.21.46.32
+                prefix-length: 24
+            enabled: true
+          mtu: 9000
+      dns-resolver:
+        config:
+          server:
+            - 172.16.101.9
+            - 172.16.101.10
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 172.21.46.1
+          next-hop-interface: bond0.2146
+  - hostname: master03.pure-agent1.kodevirtual.com
+    role: master
+    rootDeviceHints:
+      wwn: "0x6000c290f682aab81a12f2fe50672300"
+    interfaces:
+      - name: ens192
+        macAddress: 00:50:56:a6:b6:03
+      - name: ens224
+        macAddress: 00:50:56:a6:b6:13
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: false
+          mtu: 9000
+        - name: ens224
+          type: ethernet
+          state: down
+          ipv4:
+            enabled: false
+          mtu: 9000
+        - name: bond0
+          description: Bond with ports ens192 and ens224
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: "100"
+            port:
+              - ens192
+              - ens224
+          mtu: 9000
+        - name: bond0.2146
+          description: vlan 2146 on ens192
+          type: vlan
+          state: up
+          vlan:
+            id: 2146
+            base-iface: bond0
+          ipv4:
+            address:
+              - ip: 172.21.46.33
+                prefix-length: 24
+            enabled: true
+          mtu: 9000
+      dns-resolver:
+        config:
+          server:
+            - 172.16.101.9
+            - 172.16.101.10
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 172.21.46.1
+          next-hop-interface: bond0.2146
