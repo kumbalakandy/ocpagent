@@ -22,5 +22,15 @@ ssh-add -l
 
 
 
+Once generated use this ISO to boot the machines. 
+-------------------------------------------------
+
+openshift-install --dir . agent wait-for bootstrap-complete --log-level=debug
+
+openshift-install --dir . agent wait-for install-complete --log-level=debug
+
+
+
+
 
 
