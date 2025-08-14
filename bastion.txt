@@ -14,6 +14,13 @@ mv butane /usr/local/bin/
 3) Donwload openshift install
  wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-install-linux.tar.gz
 
+4) SSH Keygen
+ssh-keygen -t ed25519 -f /home/kni/.ssh/id_rsa -N ''
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+ssh-add -l
+
+
 
 
 
