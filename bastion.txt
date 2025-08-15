@@ -43,4 +43,8 @@ udevadm info --query=all --name=/dev/sdX
 /opt/dell/srvadmin/sbin/omreport storage vdisk
 /opt/dell/srvadmin/sbin/omreport storage pdisk controller=0
 
+butane for /var
+---------------
+butane $HOME/clusterconfig/98-var-partition.bu -o $HOME/clusterconfig/openshift/98-var-partition.yaml
+
 
