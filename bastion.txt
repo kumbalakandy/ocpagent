@@ -30,7 +30,11 @@ openshift-install --dir . agent wait-for bootstrap-complete --log-level=debug
 openshift-install --dir . agent wait-for install-complete --log-level=debug
 
 
+kubelet
+-------
+oc get machineconfig 99-worker-XXXXXX-XXXXX-XXXX-XXXXX-kubelet -o json | grep ownerReference -A7
 
+ cat /host/etc/kubernetes/kubelet.conf | grep cpuManager
 
 
 
