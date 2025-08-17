@@ -1,0 +1,170 @@
+oc adm new-project openshift-local-storage
+
+oc label ns/openshift-local-storage openshift.io/cluster-monitoring=true
+oc annotate namespace openshift-local-storage openshift.io/node-selector=''
+
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: local-operator-group
+  namespace: openshift-local-storage
+spec:
+  targetNamespaces:
+    - openshift-local-storage
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: local-storage-operator
+  namespace: openshift-local-storage
+spec:
+  channel: stable
+  installPlanApproval: Automatic 
+  name: local-storage-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+
+oc get csvs -n openshift-local-storage
+oc get pods -n openshift-local-storage
+
+
+apiVersion: "local.storage.openshift.io/v1"
+kind: "LocalVolume"
+metadata:
+  name: "local-cache-storage"
+  namespace: "openshift-local-storage" 
+spec:
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - master01.pure-agent1.kodevirtual.com
+          - master02.pure-agent1.kodevirtual.com
+          - master03.pure-agent1.kodevirtual.com
+  storageClassDevices:
+    - storageClassName: "local-sc" 
+      forceWipeDevicesAndDestroyAllData: false 
+      volumeMode: Filesystem 
+      fsType: xfs 
+      devicePaths: 
+        - /dev/sdb
+        - /dev/sdc
+
+
+oc get pv --selector storage.openshift.com/owner-name=local-cache-storage
+
+oc get pv
+
+ oc get localvolume -A
+
+
+ODF Installation
+===================
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-storage
+spec: {}
+EOF
+
+
+Create Operator Group for ODF Operator.
+
+cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-storage-operatorgroup
+  namespace: openshift-storage
+spec:
+  targetNamespaces:
+  - openshift-storage
+EOF
+
+
+cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: odf-operator
+  namespace: openshift-storage
+spec:
+  channel: "stable-4.19"
+  installPlanApproval: Automatic
+  name: odf-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+EOF
+
+
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: rbd-replica2
+  namespace: openshift-storage
+spec:
+  replicated:
+    size: 2
+    requireSafeReplicaSize: false
+  compressionMode: none
+---
+apiVersion: ceph.rook.io/v1
+kind: CephBlockPool
+metadata:
+  name: rbd-replica1
+  namespace: openshift-storage
+spec:
+  replicated:
+    size: 1
+    requireSafeReplicaSize: false
+  compressionMode: none
+
+
+
+
+
+
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ocs-rbd-replica2
+provisioner: openshift-storage.rbd.csi.ceph.com
+parameters:
+  clusterID: openshift-storage
+  pool: rbd-replica2
+  imageFormat: "2"
+  imageFeatures: layering
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: openshift-storage
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+  csi.storage.k8s.io/node-stage-secret-namespace: openshift-storage
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ocs-rbd-replica1
+provisioner: openshift-storage.rbd.csi.ceph.com
+parameters:
+  clusterID: openshift-storage
+  pool: rbd-replica1
+  imageFormat: "2"
+  imageFeatures: layering
+  csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+  csi.storage.k8s.io/provisioner-secret-namespace: openshift-storage
+  csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+  csi.storage.k8s.io/node-stage-secret-namespace: openshift-storage
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+
