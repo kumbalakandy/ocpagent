@@ -55,6 +55,45 @@ spec:
         - /dev/sdc
 
 
+
+sample
+------
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: local-sc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: lvs-fs-sc
+  volumeMode: Filesystem
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lvs-pod
+  namespace: test
+spec:
+  containers:
+  - name: ocs
+    image: quay.io/centos/centos
+    ports:
+      - containerPort: 80
+        name: "http-server"
+    command: ["/bin/bash", "-c", "sleep 2000000000"]
+    volumeMounts:
+      - mountPath: /data
+        name: lvs-fs-pv
+  volumes:
+    - name: lvs-fs-pv
+      persistentVolumeClaim:
+        claimName: lvs-fs-pvc
+
+
 oc get pv --selector storage.openshift.com/owner-name=local-cache-storage
 
 oc get pv
@@ -168,3 +207,40 @@ reclaimPolicy: Delete
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
 
+
+sample
+------
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: local-sc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: lvs-fs-sc
+  volumeMode: Filesystem
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lvs-pod
+  namespace: test
+spec:
+  containers:
+  - name: ocs
+    image: quay.io/centos/centos
+    ports:
+      - containerPort: 80
+        name: "http-server"
+    command: ["/bin/bash", "-c", "sleep 2000000000"]
+    volumeMounts:
+      - mountPath: /data
+        name: lvs-fs-pv
+  volumes:
+    - name: lvs-fs-pv
+      persistentVolumeClaim:
+        claimName: lvs-fs-pvc
