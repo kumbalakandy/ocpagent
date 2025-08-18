@@ -1,0 +1,42 @@
+I) REPLACE CONSOLE (INGRESS) CERTIFICATE
+++++++++++++++++++++++++++++++++++++++++
+  
+  
+1) Create a config map that includes only the root CA certificate that is used to sign the wildcard certificate:
+----------------------------------------------------------------------------------------------------------------
+oc create configmap custom-ca   --from-file=ca-bundle.crt=</path/to/example-ca.crt>  -n openshift-config
+
+  
+2) Update the cluster-wide proxy configuration with the newly created config map:
+----------------------------------------------------------------------------------------------------------------
+
+oc patch proxy/cluster --type=merge  --patch='{"spec":{"trustedCA":{"name":"custom-ca"}}}'
+
+3) Create a secret that contains the wildcard certificate chain and key:
+----------------------------------------------------------------------------------------------------------------
+
+oc create secret tls <secret>  --cert=</path/to/cert.crt> --key=</path/to/cert.key> -n openshift-ingress
+
+4) Update the Ingress Controller configuration with the newly created secret
+----------------------------------------------------------------------------------------------------------------
+
+oc patch ingresscontroller.operator default --type=merge -p  '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' -n openshift-ingress-operator
+
+II) REPLACE API (INGRESS) CERTIFICATE
+++++++++++++++++++++++++++++++++++++++++
+
+  oc login -u kubeadmin -p <password> https://FQDN:6443
+
+  oc config view --flatten > kubeconfig-newapi
+
+  Create a secret that contains the certificate chain and private key in the openshift-config namespace.
+
+  oc create secret tls <secret> --cert=</path/to/cert.crt> --key=</path/to/cert.key> -n openshift-config
+
+ oc patch apiserver cluster \
+     --type=merge -p \
+     '{"spec":{"servingCerts": {"namedCertificates": \
+     [{"names": ["<FQDN>"], \
+     "servingCertificate": {"name": "<secret>"}}]}}}'
+
+  
