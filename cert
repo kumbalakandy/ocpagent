@@ -1,0 +1,33 @@
+[ req ]
+default_bits = 2048
+distinguished_name = req_distinguished_name
+req_extensions = req_ext
+prompt = no
+
+[ req_distinguished_name ]
+countryName = AE
+stateOrProvinceName = Dubai
+localityName = Dubai
+organizationName = MDS SI
+organizationalUnitName = IT
+commonName = api.dcimage.kodevirtual.com
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = api.dcimage.kodevirtual.com
+DNS.2 = virt-exportproxy-openshift-cnv.apps.cluster01.kodevirtual.com                   
+DNS.3 = console-openshift-console.apps.cluster01.kodevirtual.com                        
+DNS.4 = downloads-openshift-console.apps.cluster01.kodevirtual.com                      
+DNS.5 = oauth-openshift.apps.cluster01.kodevirtual.com                                  
+DNS.6 = cdi-uploadproxy-openshift-cnv.apps.cluster01.kodevirtual.com                    
+DNS.7 = hyperconverged-cluster-cli-download-openshift-cnv.apps.cluster01.kodevirtual.com
+DNS.8 = canary-openshift-ingress-canary.apps.cluster01.kodevirtual.com                  
+DNS.9 = alertmanager-main-openshift-monitoring.apps.cluster01.kodevirtual.com           
+DNS.10 = prometheus-k8s-openshift-monitoring.apps.cluster01.kodevirtual.com              
+DNS.11 = prometheus-k8s-federate-openshift-monitoring.apps.cluster01.kodevirtual.com     
+DNS.12 = thanos-querier-openshift-monitoring.apps.cluster01.kodevirtual.com   
+
+
+openssl req -out ocp.csr -newkey rsa:2048 -nodes -keyout ocp.key -config sslconfig.cfg -sha256
