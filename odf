@@ -1,3 +1,6 @@
+oc label node <node1> <node2> <node3> cluster.ocs.openshift.io/openshift-storage=''
+
+
 oc adm new-project openshift-local-storage
 
 oc label ns/openshift-local-storage openshift.io/cluster-monitoring=true
@@ -28,6 +31,46 @@ spec:
 
 oc get csvs -n openshift-local-storage
 oc get pods -n openshift-local-storage
+
+---
+apiVersion: local.storage.openshift.io/v1alpha1
+kind: LocalVolumeSet
+metadata:
+  name: lvs-cache
+  namespace: openshift-local-storage
+spec:
+  storageClassName: local-cache-sc
+  volumeMode: Filesystem
+  fsType: xfs
+  deviceInclusionSpec:
+    deviceTypes: ["disk"]
+    minSize: 1800Gi
+    deviceMechanicalProperties: ["NonRotational"]  # if SSDs
+  maxDeviceCount: 2
+  nodeSelector:
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: cluster.ocs.openshift.io/openshift-storage
+        operator: Exists
+---
+apiVersion: local.storage.openshift.io/v1alpha1
+kind: LocalVolumeSet
+metadata:
+  name: lvs-odf
+  namespace: openshift-local-storage
+spec:
+  storageClassName: localblock-odf
+  volumeMode: Block
+  deviceInclusionSpec:
+    deviceTypes: ["disk"]
+    minSize: 1800Gi
+    deviceMechanicalProperties: ["NonRotational"]
+  maxDeviceCount: 4
+  nodeSelector:
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: cluster.ocs.openshift.io/openshift-storage
+        operator: Exists
 
 
 apiVersion: "local.storage.openshift.io/v1"
