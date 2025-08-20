@@ -343,3 +343,13 @@ spec:
       - key: node-role.kubernetes.io/infra
         value: reserved
         effect: NoExecute
+
+
+
+
+
+apiVersion: local.storage.openshift.io/v1alpha1
+kind: LocalVolumeDiscovery
+metadata:
+  name: auto-discover-devices
+  namespace: openshift-local-storage
