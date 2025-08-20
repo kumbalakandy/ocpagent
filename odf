@@ -320,6 +320,7 @@ metadata:
   namespace: openshift-storage
 spec:
   monDataDirHostPath: /var/lib/rook
+  resourceProfile: performance
   storageDeviceSets:
   - count: 9
     dataPVCTemplate:
@@ -329,10 +330,10 @@ spec:
         resources:
           requests:
             storage: "1" 
-        storageClassName: lso-volumeset
-        volumeMode: Block 4
-    name: ocs-deviceset-lso-volumeset
-    replica: 3
+        storageClassName: localblock-odf
+        volumeMode: Block
+    name: lvs-odf
+    replica: 1
   flexibleScaling: true 
   placement: 
     all:
