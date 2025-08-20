@@ -309,3 +309,37 @@ spec:
     - name: lvs-fs-pv
       persistentVolumeClaim:
         claimName: lvs-fs-pvc
+
+
+
+
+apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  name: ocs-storagecluster
+  namespace: openshift-storage
+spec:
+  monDataDirHostPath: /var/lib/rook
+  storageDeviceSets:
+  - count: 9
+    dataPVCTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: "1" 
+        storageClassName: lso-volumeset
+        volumeMode: Block 4
+    name: ocs-deviceset-lso-volumeset
+    replica: 3
+  flexibleScaling: true 
+  placement: 
+    all:
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
