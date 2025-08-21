@@ -1,0 +1,14 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: custom-config 
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      custom-kubelet: enabled 
+  kubeletConfig: 
+    podsPerCore: 10
+    maxPods: 250
+    systemReserved:
+      cpu: 2000m
+      memory: 1Gi
