@@ -354,3 +354,6 @@ kind: LocalVolumeDiscovery
 metadata:
   name: auto-discover-devices
   namespace: openshift-local-storage
+
+
+https://access.redhat.com/articles/6525111?extIdCarryOver=true&percmp=7015Y0000048OFsQAM&sc_cid=7013a0000026OSVAA2
