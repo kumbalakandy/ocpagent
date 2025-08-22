@@ -29,3 +29,17 @@ find_multipaths yes
 }
 blacklist {
 }' | base64 -w0
+
+
+------
+
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: "master"
+  name: 99-master-kargs-mpath
+spec:
+  kernelArguments:
+    - 'rd.multipath=default'
+    - 'root=/dev/disk/by-label/dm-mpath-root'
