@@ -19,4 +19,5 @@ spec:
     evictionSoftGracePeriod: 
       memory.available: "5m" 
     evictionPressureTransitionPeriod: 0s
+    topologyManagerPolicy: best-effort
     
