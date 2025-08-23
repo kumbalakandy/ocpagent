@@ -356,4 +356,11 @@ metadata:
   namespace: openshift-local-storage
 
 
+oc get localvolumediscoveryresults.local.storage.openshift.io \
+  -n openshift-local-storage \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\n____________________________________________\n"}{range .status.discoveredDevices[?(@.status.state=="Available")]}{"==>  "}{.path}{"-->"}{.deviceID}{"\n"}{end}{"\n"}{end}'
+
+
+
+
 https://access.redhat.com/articles/6525111?extIdCarryOver=true&percmp=7015Y0000048OFsQAM&sc_cid=7013a0000026OSVAA2
