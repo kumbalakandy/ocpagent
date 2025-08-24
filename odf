@@ -163,6 +163,72 @@ oc get pv --selector storage.openshift.com/owner-name=local-cache-storage
 
 oc get pv
 
+
+apiVersion: "local.storage.openshift.io/v1"
+kind: "LocalVolume"
+metadata:
+  name: "m01-local-cache-storage"
+  namespace: "openshift-local-storage" 
+spec:
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m01.aic.kodevirtual.com
+  storageClassDevices:
+    - storageClassName: "local-sc" 
+      forceWipeDevicesAndDestroyAllData: false 
+      volumeMode: Block
+      devicePaths: 
+        - /dev/disk/by-id/wwn-0x6000c29041d23ef4071e39975cde2e72
+        - /dev/disk/by-id/wwn-0x6000c2924eb213a6f14f9c6de3b6e6db
+        - /dev/disk/by-id/wwn-0x6000c298bf37c57e4ad97954e080d9be
+
+apiVersion: "local.storage.openshift.io/v1"
+kind: "LocalVolume"
+metadata:
+  name: "m02-local-cache-storage"
+  namespace: "openshift-local-storage" 
+spec:
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m02.aic.kodevirtual.com
+  storageClassDevices:
+    - storageClassName: "local-sc" 
+      forceWipeDevicesAndDestroyAllData: false 
+      volumeMode: Block
+      devicePaths: 
+        - /dev/disk/by-id/wwn-0x6000c292465adf11bbe5493ffe37c593
+        - /dev/disk/by-id/wwn-0x6000c290b7a72979a3852cc022664dc0
+        - /dev/disk/by-id/wwn-0x6000c29ce27a8a4e8a2ad965d5a4a2ab
+
+apiVersion: "local.storage.openshift.io/v1"
+kind: "LocalVolume"
+metadata:
+  name: "m03-local-cache-storage"
+  namespace: "openshift-local-storage" 
+spec:
+  nodeSelector: 
+    nodeSelectorTerms:
+    - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m03.aic.kodevirtual.com
+  storageClassDevices:
+    - storageClassName: "local-sc" 
+      forceWipeDevicesAndDestroyAllData: false 
+      volumeMode: Block
+      devicePaths: 
+        - /dev/disk/by-id/wwn-0x6000c296f94a2eb1ea0361a2dc4510ef
+        - /dev/disk/by-id/wwn-0x6000c298464d0d48c3e72b71a54e6415
+        - /dev/disk/by-id/wwn-0x6000c299f5c82f6b8a7d5a24eaee8550
  oc get localvolume -A
 
 
