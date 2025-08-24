@@ -22,6 +22,11 @@ data:
 
 2. LDAPS CA Cert ConfigMap
 --------------------------
+
+oc create configmap ca-config-map --from-file=ca.crt=CA.cer -n openshift-config 
+
+OR
+
 ---
 apiVersion: v1
 kind: ConfigMap
