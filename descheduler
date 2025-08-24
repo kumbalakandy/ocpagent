@@ -45,5 +45,4 @@ spec:
   - AffinityAndTaints
   - TopologyAndDuplicates
   - LifecycleAndUtilization
-  - EvictPodsWithLocalStorage
-  - EvictPodsWithPVC
+
