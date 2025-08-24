@@ -23,7 +23,7 @@ data:
 2. LDAPS CA Cert ConfigMap
 --------------------------
 
-oc create configmap ca-config-map --from-file=ca.crt=CA.cer -n openshift-config 
+oc create configmap ldap-ca-config-map--from-file=ca.crt=CA.cer -n openshift-config 
 
 OR
 
@@ -31,7 +31,7 @@ OR
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ldap-ca-config-map02
+  name: ldap-ca-config-map
   namespace: openshift-config
 data:
   ca.crt: |
@@ -66,19 +66,56 @@ spec:
     type: LDAP
     ldap:
       attributes:
-        id: [dn]
-        email: [mail]
-        name: [cn]
-        preferredUsername: [sAMAccountName]
-      bindDN: 'cn=svc_ocp_ad,ou=service_admin,dc=kodevirtual,dc=com'
+        id: dn
+        email: mail
+        name:  cn 
+        preferredUsername:  sAMAccountName
+      bindDN: 'CN=OCP SVC Account,OU=service_admin,DC=kodevirtual,DC=com'
       bindPassword:
         name: ldap-secret
       ca:
         name: ldap-ca-config-map
       insecure: false
-      url: 'ldaps://kodevirtual.com/OU=Tier 1,OU=Admins,DC=kodevirtual,DC=com?sAMAccountName?sub?(|(memberOf=cn=OCP Admins,OU=T1 Groups,OU=Tier 1,OU=Admins,DC=kodevirtual,DC=com)(memberOf=cn=OCP Users,OU=T1 Groups,OU=Tier 1,OU=Admins,DC=kodevirtual,DC=com))'
+      url: 'ldaps://kodevirtual.com/DC=kodevirtual,DC=com?sAMAccountName?sub?(|(memberOf=CN=admins ocp,OU=OCP Admins,DC=kodevirtual,DC=com)(memberOf=CN=Operator Ocp,OU=OCP Admins,DC=kodevirtual,DC=com))'
   tokenConfig:
     accessTokenMaxAgeSeconds: 86400
+
+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    openshift.io/cluster-monitoring: "true"
+  name: group-sync-operator
+
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: group-sync-operator
+  namespace: group-sync-operator
+spec:
+  targetNamespaces:
+    - group-sync-operator
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: group-sync-operator
+  namespace: group-sync-operator
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: group-sync-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: group-sync-operator.v0.0.36
+
+
+
+
 
 
 II - LDAP Synchronization
@@ -107,6 +144,10 @@ base64
 
 2. Create CA Secret
 ------------------
+oc -n group-sync-operator create secret generic ldap-ca-cert   --from-file=ca.crt=CA.cer
+
+OR
+
 
 base64 -w0 CA.pem 
 
