@@ -1,0 +1,257 @@
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: netobserver-loki-obc
+  namespace: openshift-storage
+spec:
+  generateBucketName: netobserver-loki-obc
+  storageClassName: openshift-storage.noobaa.io
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netobserv
+
+
+1) oc get obc netobserver-loki-obc -n openshift-storage -ojson | jq .spec.bucketName 
+2) oc get secret netobserver-loki-obc -n openshift-storage --template='{{index .data "AWS_ACCESS_KEY_ID" | base64decode}}' && echo
+3)  oc get secret netobserver-loki-obc -n openshift-storage --template='{{index .data "AWS_SECRET_ACCESS_KEY" | base64decode}}' && echo
+4) oc get cm netobserver-loki-obc -n openshift-storage -ojson | jq .data.BUCKET_NAME
+5) oc get cm netobserver-loki-obc -n openshift-storage -ojson | jq .data.BUCKET_HOST
+6) oc get routes -n openshift-storage | grep s3
+7)  oc get noobaa noobaa -ojson -n openshift-storage | jq .status.services.serviceS3.externalDNS
+8) 
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: loki-s3-netobserv
+  namespace: netobserv
+stringData:
+  access_key_id: Rokrxxxxxxxxxxxxxxxx # <------(2)
+  access_key_secret: 06jFakXCKyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy # <------(3)
+  bucketnames: netobserver-loki-obc-b98cb0f6-5493-4a46-b4ce-c41f51b07768 # <------(1)
+  endpoint: http://s3-openshift-storage.apps.clusterName.domain.org # <------(7)
+
+
+######INSTALLING LOKI#################################
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-operators-redhat
+
+oc label namespace openshift-operators-redhat openshift.io/cluster-monitoring="true"
+
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+   name: loki-operator
+   namespace: openshift-operators-redhat
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: loki-operator
+  namespace: openshift-operators-redhat
+spec:
+  channel: stable-6.3
+  name: loki-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+######LOKI STACK ######
+
+
+mkdir loki && cd loki
+
+oc extract secret/$(oc get ingresscontroller -n openshift-ingress-operator default -o json | jq '.spec.defaultCertificate.name // "router-certs-default"' -r) -n openshift-ingress --confirm
+
+oc -n netobserv create configmap loki-s3-ca --from-file=service-ca.crt=tls.crt
+
+
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: loki
+  namespace: netobserv
+spec:
+  limits:
+    global:
+      ingestion:
+        ingestionBurstSize: 40
+        ingestionRate: 20
+        maxGlobalStreamsPerTenant: 25000
+      queries:
+        maxChunksPerQuery: 2000000
+        maxEntriesLimitPerQuery: 10000
+        maxQuerySeries: 3000
+        queryTimeout: 3m
+      retention:
+        days: 31
+        streams:
+        - days: 15
+          priority: 1
+          selector: '{log_type="audit"}'
+        - days: 15
+          priority: 1
+          selector: '{log_type="infrastructure"}'
+  managementState: Managed
+  replicationFactor: 1
+  rules:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        openshift.io/cluster-monitoring: "true"
+    selector:
+      matchLabels:
+        openshift.io/cluster-monitoring: "true"
+  size: 1x.extra-small
+  storage:
+    schemas:
+    - effectiveDate: "2025-08-24"
+      version: v13
+    secret:
+      name: loki-s3-netobserv
+      type: s3
+    tls:
+      caName: loki-s3-ca
+  storageClassName: ocs-storagecluster-ceph-rbd
+  tenants:
+    mode: openshift-network
+
+
+##### INSTALLING NETOBSERV#####
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: loki-netobserv-tenant
+rules:
+- apiGroups:
+  - loki.grafana.com
+  resourceNames:
+  - logs
+  resources:
+  - network
+  verbs:
+  - get
+  - create
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: loki-netobserv-tenant
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: loki-netobserv-tenant
+subjects:
+- kind: ServiceAccount
+  name: flowlogs-pipeline
+  namespace: netobserv
+
+=====
+
+
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-netobserv-operator
+
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-netobserv-operator
+  namespace: openshift-netobserv-operator
+spec:
+  upgradeStrategy: Default
+
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: netobserv-operator
+  namespace: openshift-netobserv-operator
+spec:
+  channel: stable
+  installPlanApproval: Automatic 
+  name: netobserv-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+
+========
+
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+spec:
+  namespace: netobserv
+  deploymentModel: Direct
+  agent:
+    type: eBPF                                
+    ebpf:
+      sampling: 50                            
+      logLevel: info
+      privileged: false
+      resources:
+        requests:
+          memory: 50Mi
+          cpu: 100m
+        limits:
+          memory: 800Mi
+  processor:               
+    logLevel: info
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 100m
+      limits:
+        memory: 800Mi
+    logTypes: Flows
+    advanced:
+      conversationEndTimeout: 10s
+      conversationHeartbeatInterval: 30s
+  loki:                     
+    mode: LokiStack         
+  consolePlugin:
+    register: true
+    logLevel: info
+    portNaming:
+      enable: true
+      portNames:
+        "3100": loki
+    quickFilters:            
+    - name: Applications
+      filter:
+        src_namespace!: 'openshift-,netobserv'
+        dst_namespace!: 'openshift-,netobserv'
+      default: true
+    - name: Infrastructure
+      filter:
+        src_namespace: 'openshift-,netobserv'
+        dst_namespace: 'openshift-,netobserv'
+    - name: Pods network
+      filter:
+        src_kind: 'Pod'
+        dst_kind: 'Pod'
+      default: true
+    - name: Services network
+      filter:
+        dst_kind: 'Service'
