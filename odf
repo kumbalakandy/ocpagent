@@ -319,7 +319,14 @@ metadata:
   name: ocs-storagecluster
   namespace: openshift-storage
 spec:
+  encryption:
+    clusterWide: true
+    enable: true
   monDataDirHostPath: /var/lib/rook
+  network:
+    connections:
+      encryption:
+        enabled: true
   resourceProfile: performance
   storageDeviceSets:
   - count: 9
