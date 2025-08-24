@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -5,7 +6,7 @@ metadata:
     openshift.io/cluster-monitoring: "true"
   name: openshift-compliance
 
-
+---
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -14,7 +15,7 @@ metadata:
 spec:
   targetNamespaces:
   - openshift-compliance
-
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
