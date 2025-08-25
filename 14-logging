@@ -29,6 +29,35 @@ spec:
   source: redhat-operators 
   sourceNamespace: openshift-marketplace
 
+---
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: instance 
+  namespace: openshift-logging 
+spec:
+  outputs:
+   - name: kv-lab-syslog 
+     type: syslog 
+     syslog: 
+       facility: local0
+       rfc: RFC3164
+       payloadKey: message
+       severity: debug
+	   addLogSource: true
+     url: 'udp://172.21.45.241:514' 
+  pipelines:
+   - name: kv-lab-syslog
+     inputRefs:
+     - infrastructure
+     - audit
+     - application
+     outputRefs:
+     - kv-lab-syslog
+     - default
+     labels:
+       syslog: "lab-syslog"
+
 
 oc create sa logging-collector -n openshift-logging
 
