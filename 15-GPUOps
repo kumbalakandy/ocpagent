@@ -1,0 +1,135 @@
+oc get configs.imageregistry.operator.openshift.io cluster -o jsonpath='{.spec.storage}{"\n"}'
+
+oc get -n openshift is/driver-toolkit
+
+Check "feature.node.kubernetes.io/pci-10de.present=true" label
+
+oc describe node | egrep 'Roles|pci' | grep -v master
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nvidia-gpu-operator
+  labels:
+    openshift.io/cluster-monitoring: "true"
+
+
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: nvidia-gpu-operator-group
+  namespace: nvidia-gpu-operator
+spec:
+ targetNamespaces:
+ - nvidia-gpu-operator
+
+
+oc get packagemanifest gpu-operator-certified -n openshift-marketplace -o jsonpath='{.status.defaultChannel}'
+
+
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+spec:
+  channel: "v25.3"
+  installPlanApproval: Manual
+  name: gpu-operator-certified
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: "gpu-operator-certified.v22.9.0"
+
+
+
+
+
+oc get pods,daemonset -n nvidia-gpu-operator
+
+oc get pod -owide -lopenshift.driver-toolkit=true
+
+oc exec -it nvidia-driver-daemonset-410.84.202203290245-0-xxgdv -- nvidia-smi
+
+
+cat << EOF | oc create -f -
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cuda-vectoradd
+spec:
+ restartPolicy: OnFailure
+ containers:
+ - name: cuda-vectoradd
+   image: "nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda12.5.0-ubi8"
+   resources:
+     limits:
+       nvidia.com/gpu: 1
+EOF
+
+
+Enable Monitoring Dashboard
+
+curl -LfO https://github.com/NVIDIA/dcgm-exporter/raw/main/grafana/dcgm-exporter-dashboard.json
+
+oc create configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed --from-file=dcgm-exporter-dashboard.json
+
+oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed "console.openshift.io/dashboard=true"
+
+oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed "console.openshift.io/odc-dashboard=true"
+
+oc -n openshift-config-managed get cm nvidia-dcgm-exporter-dashboard --show-labels
+
+MIG is only supported with A30, A100, A100X, A800, AX800, H100, and H800
+
+
+Time Slicing
+---------------
+
+oc patch clusterpolicy gpu-cluster-policy -n nvidia-gpu-operator \
+    --type json \
+    --patch '[{"op": "replace", "path": "/spec/gfd/enable", "value": true}]'
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: device-plugin-config
+  namespace: nvidia-gpu-operator
+data:
+  L40: |-
+    version: v1
+    sharing:
+      timeSlicing:
+        resources:
+          - name: nvidia.com/gpu
+            replicas: 8
+
+
+oc patch clusterpolicy gpu-cluster-policy \
+    -n nvidia-gpu-operator --type merge \
+    -p '{"spec": {"devicePlugin": {"config": {"name": "device-plugin-config"}}}}'
+
+
+oc label --overwrite node \
+    --selector=nvidia.com/gpu.product=L40 \
+    nvidia.com/device-plugin.config=L40
+
+oc get node --selector=nvidia.com/gpu.product=Tesla-T4-SHARED -o json | jq '.items[0].status.capacity'
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: time-slicing-config
+data:
+  any: |-
+    version: v1
+    flags:
+      migStrategy: none
+    sharing:
+      timeSlicing:
+        renameByDefault: false
+        failRequestsGreaterThanOne: false
+        resources:
+          - name: nvidia.com/gpu
+            replicas: 4
