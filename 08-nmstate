@@ -24,6 +24,22 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   name: kubernetes-nmstate-operator
+
+
+
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: br-ex-mappings
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: '' 
+  desiredState:
+    ovn:
+      bridge-mappings:
+      - localnet: <name>
+        bridge: br-ex 
+        state: present 
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ---
