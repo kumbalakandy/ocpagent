@@ -1,0 +1,16 @@
+Egress IP
+---------
+oc label nodes <node_name> k8s.ovn.org/egress-assignable=""
+apiVersion: k8s.ovn.org/v1
+kind: EgressIP
+metadata:
+  name: egress-group1
+spec:
+  egressIPs:
+  - 192.168.126.11
+  podSelector:
+    matchLabels:
+      app: web
+  namespaceSelector:
+    matchLabels:
+      env: prod
