@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    enableUserWorkload: true 
+    prometheusK8s:
+      enforcedBodySizeLimit: automatic
+      collectionProfile: minimal
+      retention: 24h
+      retentionSize: 10GB
+      volumeClaimTemplate:
+        spec:
+          storageClassName: my-storage-class
+          resources:
+            requests:
+              storage: 40Gi
+    alertmanagerMain:
+      enableUserAlertmanagerConfig: true 
+      alertmanagerMain:
+        volumeClaimTemplate:
+          metadata:
+            name: ocs-alertmanager-claim
+          spec:
+            storageClassName: ocs-storagecluster-ceph-rbd
+            resources:
+              requests:
+                storage: <size of claim, e.g. 40Gi>
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+data:
+  config.yaml: |
+    prometheus:
+      retention: 90d
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ocs-storagecluster-cephfs
+          resources:
+            requests:
+              storage: 300Gi
+    alertmanagerMain:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ocs-storagecluster-cephfs
+          resources:
+            requests:
+              storage: 20Gi
+
+
