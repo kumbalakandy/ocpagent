@@ -1,0 +1,29 @@
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: external
+  namespace: openshift-ingress-operator
+spec:
+  domain: tenants.kodevirtual.com
+  endpointPublishingStrategy:
+    type: LoadBalancerService
+  httpEmptyRequestsPolicy: Respond
+  logging: 
+    access:
+      destination:
+        type: Container
+  replicas: 3
+  routeSelector:
+    matchLabels:
+      type: external
+  namespaceSelector:
+    matchLabels:
+      scope: tenant
+
+
+oc patch -n openshift-ingress-operator IngressController/default --type='merge' -p '{"spec":{"routeSelector":{"matchExpressions":[{"key":"type","operator":"NotIn","values":["external"]}]}}}'
+oc patch -n openshift-ingress-operator IngressController/default --type='merge' -p '{"spec":{"namespaceSelector":{"matchExpressions":[{"key":"scope","operator":"NotIn","values":["tenants"]}]}}}'
+
+oc create secret tls <secret> --cert=</path/to/cert.crt> --key=</path/to/cert.key> -n openshift-ingress
+
+oc patch ingresscontroller.operator default --type=merge -p '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' -n openshift-ingress-operator
