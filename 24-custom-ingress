@@ -28,6 +28,12 @@ oc create secret tls <secret> --cert=</path/to/cert.crt> --key=</path/to/cert.ke
 
 oc patch ingresscontroller.operator default --type=merge -p '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' -n openshift-ingress-operator
 
+spec:
+  tlsSecurityProfile:
+    old: {}
+    type: Old
+
+oc explain ingresscontroller.spec.tlsSecurityProfile
 
   logging:
     access:
