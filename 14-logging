@@ -65,3 +65,62 @@ oc create sa logging-collector -n openshift-logging
 oc adm policy add-cluster-role-to-user logging-collector-logs-writer -z logging-collector -n openshift-logging
 oc adm policy add-cluster-role-to-user collect-application-logs -z logging-collector -n openshift-logging
 oc adm policy add-cluster-role-to-user collect-infrastructure-logs -z logging-collector -n openshift-logging
+
+
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: instance 
+  namespace: openshift-logging 
+spec:
+  outputs:
+   - name: kv-lab-syslog <-----
+     type: syslog 
+     syslog: 
+       facility: user
+       rfc: RFC5424
+       payloadKey: message
+       severity: debug
+       enrichment: KubernetesMinimal
+     url: 'udp://172.21.45.241:514' <-----
+  filters:
+  - kubeAPIAudit:
+      omitStages:
+      - RequestReceived
+      rules:
+      - level: Request # This rule adds visibility into failed login attempts by tracking authentication decisions 
+        users: ["system:anonymous"]
+        nonResourceURLs:
+        - "/oauth/authorize*"
+        verbs: ["get"]
+      - level: None # This rule excludes all system users
+        users:
+        - "system:*"
+      - level: Request # This rule is to track "create", "patch" and "delete" actions for any user, verbs "get" and "list" can be added if desired. Logouts are included since a logout is essentially a user deleting its own oauthaccesstokens
+        verbs: ["create", "patch", "delete"]
+      - level: Request # This rule allows to filter creations of oauthaccesstokens (in other words - successful logins)
+        users:
+        - "system:serviceaccount:openshift-authentication:oauth-openshift"
+        verbs: ["create"]
+        resources:
+        - group: "oauth.openshift.io"
+          resources: ["oauthaccesstokens"]
+      - level: None # Lastly, this rule filters out everything else
+    name: my-policy <-----
+    type: kubeAPIAudit
+  inputs:
+  - name: selected-audit-logs <-----
+    audit:
+      sources: # Specifying sources to filter out node level events and OVN logs
+      - kubeAPI
+      - openshiftAPI
+  pipelines:
+   - name: kv-lab-syslog <-----
+     inputRefs:
+     - selected-audit-logs <-----
+     outputRefs:
+     - kv-lab-syslog <-----
+     filterRefs:
+     - my-policy
+     labels:
+       syslog: "lab-syslog" <-----
