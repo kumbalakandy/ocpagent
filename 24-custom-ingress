@@ -27,3 +27,13 @@ oc patch -n openshift-ingress-operator IngressController/default --type='merge' 
 oc create secret tls <secret> --cert=</path/to/cert.crt> --key=</path/to/cert.key> -n openshift-ingress
 
 oc patch ingresscontroller.operator default --type=merge -p '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' -n openshift-ingress-operator
+
+
+  logging:
+    access:
+      destination:
+        type: Syslog
+        syslog:
+          address: 1.2.3.4
+          port: 10514
+      httpLogFormat: '%ci:%cp [%t] %ft %b/%s %B %bq %HM %HU %HV'
