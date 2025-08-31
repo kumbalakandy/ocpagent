@@ -1,0 +1,412 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant1-dev
+  labels:
+    tenant: tenant1
+    scope: tenant
+    env: dev
+    openshift.io/user-monitoring: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant1-stage
+  labels:
+    tenant: tenant1
+    scope: tenant
+    env: stage
+    openshift.io/user-monitoring: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant1-prod
+  labels:
+    tenant: tenant1
+    scope: tenant
+    env: prod
+    openshift.io/user-monitoring: "true"
+
+# ==================================================
+# 2) RBAC — admin + dev roles bound per namespace
+#    (Groups come from your IDP; names are examples)
+# ==================================================
+
+# --- Admins: full control within tenant namespaces
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tenant1_admins
+  namespace: tenant1-dev
+subjects:
+- kind: Group
+  name: tenant1_admins
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tenant1_admins
+  namespace: tenant1-stage
+subjects:
+- kind: Group
+  name: tenant1_admins
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tenant1_admins
+  namespace: tenant1-prod
+subjects:
+- kind: Group
+  name: tenant1_admins
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+
+# --- Developers per environment
+# Devs: edit in dev
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tenant1-dev-developers-edit
+  namespace: tenant1-dev
+subjects:
+- kind: Group
+  name: tenant1-dev-developers
+roleRef:
+  kind: ClusterRole
+  name: edit
+  apiGroup: rbac.authorization.k8s.io
+
+# Stage: edit in stage (adjust to view if you prefer)
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tenant1-stage-developers-edit
+  namespace: tenant1-stage
+subjects:
+- kind: Group
+  name: tenant1_stage_developers
+roleRef:
+  kind: ClusterRole
+  name: edit
+  apiGroup: rbac.authorization.k8s.io
+
+# Prod: view-only (add another binding to 'edit' for a limited deployers group if needed)
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: tenant1-prod-developers-view
+  namespace: tenant1-prod
+subjects:
+- kind: Group
+  name:  tenant1_prod_developers
+roleRef:
+  kind: ClusterRole
+  name: edit
+  apiGroup: rbac.authorization.k8s.io
+
+# =====================================================
+# 3) ResourceQuotas + LimitRanges (per-namespace)
+#    + ClusterResourceQuota (tenant-wide aggregate)
+#    Adjust values and storage classes as needed.
+# =====================================================
+
+# ----- DEV -----
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rq-compute-storage
+  namespace: tenant1-prod
+spec:
+  hard:
+    requests.cpu: "2"
+    limits.cpu: "4"
+    requests.memory: 4Gi
+    limits.memory: 8Gi
+    pods: "10"
+    persistentvolumeclaims: "3"
+    requests.storage: 100Gi
+    # Per-StorageClass quotas (set names to your SCs; add zeros for SCs you want to forbid)
+    ocs-storagecluster-cephfs.storageclass.storage.k8s.io/requests.storage: 5Gi
+    ocs-storagecluster-ceph-rbd.storageclass.storage.k8s.io/requests.storage: 0Gi
+    requests.nvidia.com/gpu: "0"   # no GPUs in dev
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limits
+  namespace: tenant1-prod
+spec:
+  limits:
+  - type: Container
+    defaultRequest:
+      cpu: "250m"
+      memory: 512Mi
+    default:
+      cpu: "500m"
+      memory: 1Gi
+    max:
+      cpu: "2"
+      memory: 4Gi
+    min:
+      cpu: "50m"
+      memory: 128Mi
+
+# ----- STAGE -----
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rq-compute-storage-stage
+  namespace: tenant1-stage
+spec:
+  hard:
+    requests.cpu: "4"
+    limits.cpu: "8"
+    requests.memory: 8Gi
+    limits.memory: 16Gi
+    pods: "200"
+    persistentvolumeclaims: "20"
+    requests.storage: 200Gi
+    netapp-tenant1.storageclass.storage.k8s.io/requests.storage: 150Gi
+    odf-gold.storageclass.storage.k8s.io/requests.storage: 50Gi
+    requests.nvidia.com/gpu: "1"   # allow up to 1 GPU
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limits-stage
+  namespace: tenant1-stage
+spec:
+  limits:
+  - type: Container
+    defaultRequest:
+      cpu: "500m"
+      memory: 1Gi
+    default:
+      cpu: "1"
+      memory: 2Gi
+    max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: "100m"
+      memory: 256Mi
+
+# ----- PROD -----
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: rq-compute-storage
+  namespace: tenant1-dev
+spec:
+  hard:
+    requests.cpu: "8"
+    limits.cpu: "16"
+    requests.memory: 16Gi
+    limits.memory: 32Gi
+    pods: "300"
+    persistentvolumeclaims: "30"
+    requests.storage: 300Gi
+    netapp-tenant1.storageclass.storage.k8s.io/requests.storage: 200Gi
+    odf-gold.storageclass.storage.k8s.io/requests.storage: 100Gi
+    requests.nvidia.com/gpu: "2"   # allow up to 2 GPUs
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limits
+  namespace: tenant1-dev
+spec:
+  limits:
+  - type: Container
+    defaultRequest:
+      cpu: "500m"
+      memory: 1Gi
+    default:
+      cpu: "1"
+      memory: 2Gi
+    max:
+      cpu: "8"
+      memory: 16Gi
+    min:
+      cpu: "100m"
+      memory: 256Mi
+
+# ----- TENANT-WIDE AGGREGATE (across dev/stage/prod) -----
+---
+apiVersion: quota.openshift.io/v1
+kind: ClusterResourceQuota
+metadata:
+  name: tenant1-aggregate
+spec:
+  selector:
+    labels:
+      matchLabels:
+        tenant: tenant1
+  quota:
+    hard:
+      requests.cpu: "16"
+      limits.cpu: "32"
+      requests.memory: 32Gi
+      limits.memory: 64Gi
+      requests.nvidia.com/gpu: "2"
+      persistentvolumeclaims: "60"
+      requests.storage: 600Gi
+
+
+# ----- EGRESS IP 
+
+apiVersion: k8s.ovn.org/v1
+kind: EgressIP
+metadata:
+  name: tenant1-prod-app-egress
+spec:
+  egressIPs:
+  - 172.21.47.221
+  podSelector:
+    matchLabels:
+      tier: web
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: tenant1-prod
+
+# ----- Tenant Test Pods
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: net-tools
+  labels:
+    app: net-tools
+spec:
+  containers:
+  - name: net-tools
+    image: akumbalakandy/ubuntu:net-tools
+    command: ["sh","-c","while true; do sleep 3600; done"]
+    # optional hardening (works with OpenShift restricted SCC)
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+  restartPolicy: Always
+
+  ###Prod Project
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-web-cephfs
+  namespace: tenant1-prod
+spec:
+  storageClassName: ocs-storagecluster-cephfs
+  accessModes:
+    - ReadWriteMany           # CephFS supports RWX
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  namespace: tenant1-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: my-nginx }
+  template:
+    metadata:
+      labels: { app: my-nginx }
+    spec:
+      securityContext:
+        fsGroup: 101                 # lets containers write to the mounted volume
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+      - name: init-web
+        image: registry.access.redhat.com/ubi9/ubi-micro
+        command: ["sh","-c"]
+        args:
+          - |
+            mkdir -p /work && \
+            echo "OK - $(date)" > /work/index.html
+        volumeMounts:
+        - name: web
+          mountPath: /work
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged:latest
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: { path: /, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        volumeMounts:
+        - name: web
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: web
+        persistentVolumeClaim:
+          claimName: nginx-web-cephfs   # your existing PVC
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  namespace: tenant1-prod
+  labels:
+    app: my-nginx
+spec:
+  selector:
+    app: my-nginx
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-nginx
+  namespace: tenant1-prod
+  labels:
+    app: my-nginx
+    type: external
+spec:
+  host: stage-web.tenants.kodevirtual.com
+  to:
+    kind: Service
+    name: my-nginx
+    weight: 100
+  port:
+    targetPort: http
+  # Set a host under your tenant1 ingress domain, or omit to auto-generate
+  # host: my-nginx.tenant1.apps.<cluster-domain>
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
