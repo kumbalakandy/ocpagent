@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-lvm-storage
+
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-storage-operatorgroup
+  namespace: openshift-lvm-storage
+spec:
+  targetNamespaces:
+  - openshift-lvm-storage
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: lvms
+  namespace: openshift-lvm-storage
+spec:
+  installPlanApproval: Automatic
+  name: lvms-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  
+  
+apiVersion: lvm.topolvm.io/v1alpha1
+kind: LVMCluster
+metadata:
+  name: my-lvmcluster
+spec:
+  storage:
+    deviceClasses:
+    - name: vg1
+      fstype: xfs 
+      default: true
+      deviceSelector:
+        optionalPaths:
+        -  /dev/disk/by-id/wwn-0x6000c29b7bc0817b268f7c752e506798
+        -  /dev/disk/by-id/wwn-0x6000c2904b35df0a73fa7a1cd1e54c08
+        -  /dev/disk/by-id/wwn-0x6000c29a3dd5efa00adca861120414e1
+        forceWipeDevicesAndDestroyAllData: false
+      thinPoolConfig:
+        name: thin-pool-1
+        sizePercent: 90
+        overprovisionRatio: 10
+        chunkSize: 128Ki
+        chunkSizeCalculationPolicy: Static
+        metadataSize: 1Gi
+        metadataSizeCalculationPolicy: Host
