@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  namespace: tenant1-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: my-nginx }
+  template:
+    metadata:
+      labels: { app: my-nginx }
+    spec:
+      securityContext:
+        fsGroup: 101                 # lets containers write to the mounted volume
+        fsGroupChangePolicy: OnRootMismatch
+      initContainers:
+      - name: init-web
+        image: registry.access.redhat.com/ubi9/ubi-micro
+        command: ["sh","-c"]
+        args:
+          - |
+            mkdir -p /work && \
+            echo "OK - $(date)" > /work/index.html
+        volumeMounts:
+        - name: web
+          mountPath: /work
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged:latest
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: { path: /, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        volumeMounts:
+        - name: web
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: web
+        persistentVolumeClaim:
+          claimName: nginx-web-cephfs   # your existing PVC
+
+
+
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-web-cephfs
+  namespace: tenant1-dev
+spec:
+  storageClassName: ocs-storagecluster-cephfs
+  accessModes:
+    - ReadWriteMany           # CephFS supports RWX
+  resources:
+    requests:
+      storage: 1Gi
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  namespace: tenant1-prod
+  labels:
+    app: my-nginx
+spec:
+  selector:
+    app: my-nginx
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: my-nginx
+  namespace: tenant1-prod
+  labels:
+    app: my-nginx
+spec:
+  to:
+    kind: Service
+    name: my-nginx
+    weight: 100
+  port:
+    targetPort: http
+  # Set a host under your tenant1 ingress domain, or omit to auto-generate
+  # host: my-nginx.tenant1.apps.<cluster-domain>
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
