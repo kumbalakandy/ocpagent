@@ -215,3 +215,11 @@ spec:
       - cn=Finance,ou=Groups,dc=example,dc=com
 ...
     name: ldap
+
+
+ldaps://kodevirtual.com/DC=kodevirtual,DC=com?sAMAccountName?sub?(&
+ (objectCategory=person)
+ (objectClass=user)
+ (!(userAccountControl:1.2.840.113556.1.4.803:=2))
+ (memberOf:1.2.840.113556.1.4.1941:=CN=OCP_Tenants,OU=OCP Admins,DC=kodevirtual,DC=com)
+)
