@@ -145,6 +145,7 @@ spec:
     ocs-storagecluster-cephfs.storageclass.storage.k8s.io/requests.storage: 5Gi
     ocs-storagecluster-ceph-rbd.storageclass.storage.k8s.io/requests.storage: 0Gi
     requests.nvidia.com/gpu: "0"   # no GPUs in dev
+    count/objectbucketclaims.objectbucket.io: "10"
 ---
 apiVersion: v1
 kind: LimitRange
@@ -410,3 +411,17 @@ spec:
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
+
+-----
+Virt Migration Permission
+
+------
+
+oc label --overwrite clusterrole kubevirt.io:migrate rbac.authorization.k8s.io/aggregate-to-admin=true
+
+oc create -n <namespace> rolebinding kvmigrate --clusterrole=kubevirt.io:migrate --user=<first_user> --user=<second_user> --group=<group_name>
+
+OR
+
+oc create clusterrolebinding kvmigrate --clusterrole=kubevirt.io:migrate --user=<first_user> --user=<second_user> --group=<group_name>
+
