@@ -1,0 +1,75 @@
+---
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  name: openshift-mtv
+--
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: migration
+  namespace: openshift-mtv
+spec:
+  targetNamespaces:
+    - openshift-mtv
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: mtv-operator
+  namespace: openshift-mtv
+spec:
+  channel: release-v2.9
+  installPlanApproval: Automatic
+  name: mtv-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: mtv-operator.v2.9.3
+  
+---
+apiVersion: forklift.konveyor.io/v1beta1
+kind: ForkliftController
+metadata:
+  name: forklift-controller
+  namespace: openshift-mtv
+spec:
+  olm_managed: true
+EOF
+
+
+oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+
+HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}'
+REG=$(oc -n openshift-image-registry get route default-route -o jsonpath='{.spec.host}')
+
+oc extract secret/$(oc get ingresscontroller -n openshift-ingress-operator default -o json | jq '.spec.defaultCertificate.name // "router-certs-default"' -r) -n openshift-ingress --confirm
+
+
+sudo mv tls.crt /etc/pki/ca-trust/source/anchors/
+
+update-ca-trust extract
+
+vim  Dockerfile
+FROM registry.access.redhat.com/ubi8/ubi-minimal
+COPY vmware-vix-disklib-distrib /vmware-vix-disklib-distrib
+RUN mkdir -p /opt
+ENTRYPOINT ["cp", "-r", "/vmware-vix-disklib-distrib", "/opt"]
+
+
+
+podman build . -t default-route-openshift-image-registry.apps.aic.kodevirtual.com/openshift-mtv/vddk:7.0.3
+
+sudo podman login -u kubeadmin -p $(oc whoami -t) $HOST
+
+
+
+
+oc edit hco -n openshift-cnv kubevirt-hyperconverged
+
+apiVersion: hco.kubevirt.io/v1beta1
+kind: HyperConverged
+metadata:
+  name: kubevirt-hyperconverged
+  namespace: openshift-cnv
+spec:
+  vddkInitImage: <registry_route_or_server_path>/vddk:<tag>
