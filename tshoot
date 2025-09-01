@@ -3,3 +3,6 @@ Tshoot Neative SN
 openssl s_client -proxy your.proxy:3128 -connect rhcos.mirror.openshift.com:443 \
  -servername rhcos.mirror.openshift.com </dev/null 2>/dev/null \
  | openssl x509 -noout -serial -issuer -subject
+
+
+https://access.redhat.com/solutions/6998303
