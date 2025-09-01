@@ -1,0 +1,21 @@
+# See current binding
+oc get clusterrolebinding self-provisioners -o yaml
+
+# Remove all subjects and disable autoupdate
+oc patch clusterrolebinding self-provisioners \
+  --type=merge \
+  -p '{"subjects": null, "metadata":{"annotations":{"rbac.authorization.kubernetes.io/autoupdate":"false"}}}'
+
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: self-provisioners-tenant1-admins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: self-provisioner
+subjects:
+- kind: Group
+  apiGroup: rbac.authorization.k8s.io
+  name: tenant1-admins
