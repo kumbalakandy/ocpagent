@@ -62,6 +62,75 @@ subjects:
   name: opentelemetry-operator-controller-manager
   namespace: openshift-opentelemetry-operator
 
+
+---
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  name: otel-collector-example
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: otel-collector-example
+---
+# ClusterRole needed to grant permissions to the service account to write traces
+# for the given tenant
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempostack-traces-write
+rules:
+  - apiGroups:
+      - 'tempo.grafana.com'
+    # Tenant name set in X-Scope-OrgID
+    resources:
+      - dev
+      - prod
+    resourceNames:
+      - traces
+    verbs:
+      - 'create'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tempostack-traces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempostack-traces-write
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: otel-collector-example
+---
+# ClusterRole for the resourcedetection processor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+# Permissions for pods and namespaces resources are needed for the k8sattributesprocessor
+# Permissions for infrastructures and infrastructures/status are needed for resourcedetectionprocessor
+- apiGroups: ["", "config.openshift.io"]
+  resources: ["pods", "namespaces", "infrastructures", "infrastructures/status"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef:
+  kind: ClusterRole
+  name: otel-collector
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: otel-collector-example
+
 ---
 
 apiVersion: opentelemetry.io/v1beta1
