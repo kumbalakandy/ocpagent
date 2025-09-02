@@ -61,3 +61,76 @@ subjects:
 - kind: ServiceAccount
   name: opentelemetry-operator-controller-manager
   namespace: openshift-opentelemetry-operator
+
+---
+
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: multitenant-example
+  namespace: tempo
+spec:
+  serviceAccount: otel-collector
+  config:
+    extensions:
+      bearertokenauth:
+        filename: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+      jaeger:
+        protocols:
+          thrift_binary:
+          thrift_compact:
+          thrift_http:
+          grpc:
+      opencensus:
+      zipkin:
+
+    processors:
+      k8sattributes:
+        extract:
+          metadata:
+            - k8s.namespace.name
+      routing:
+        from_attribute: k8s.namespace.name
+        table:
+          - value: dev
+            exporters: [otlp/dev]
+          - value: prod
+            exporters: [otlp/prod]
+        default_exporters: [otlp/dev]
+
+    exporters:
+      otlp/dev:
+        endpoint: tempo-authentication-example-distributor.tempo.svc.cluster.local:4317
+        tls:
+          insecure: false
+          ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+        auth:
+          authenticator: bearertokenauth
+        headers:
+          X-Scope-OrgID: "dev"
+      otlp/prod:
+        endpoint: tempo-authentication-example-distributor.tempo.svc.cluster.local:4317
+        tls:
+          insecure: false
+          ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+        auth:
+          authenticator: bearertokenauth
+        headers:
+          X-Scope-OrgID: "prod"
+    service:
+      extensions: [bearertokenauth]
+      pipelines:
+        traces:
+          receivers: [otlp, jaeger, opencensus, zipkin]
+          processors: [k8sattributes, routing]
+          exporters: [otlp/dev]
+        metrics:
+          receivers: [otlp]
+          processors: []
+          exporters: [otlp/dev]
