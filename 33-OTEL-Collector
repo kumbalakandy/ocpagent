@@ -1,0 +1,82 @@
+----
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: cluster-collector
+  namespace: otel
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+  deploymentUpdateStrategy: {}
+  config:
+    exporters:
+      otlp/otel-nonprod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'tempo-otel-gateway.otel.svc.cluster.local:8090'
+        headers:
+          X-Scope-OrgID: otel-nonprod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlp/otel-prod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'tempo-otel-gateway.otel.svc.cluster.local:8090'
+        headers:
+          X-Scope-OrgID: otel-prod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlphttp/otel-nonprod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'https://tempo-otel-gateway.otel.svc.cluster.local:8080/api/traces/v1/otel-nonprod'
+        headers:
+          X-Scope-OrgID: otel-nonprod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlphttp/otel-prod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'https://tempo-otel-gateway.otel.svc.cluster.local:8080/api/traces/v1/otel-prod'
+        headers:
+          X-Scope-OrgID: otel-prod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      prometheus:
+        endpoint: '0.0.0.0:8889'
+        resource_to_telemetry_conversion:
+          enabled: true
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+    processors: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    service:
+      extensions:
+        - bearertokenauth
+      pipelines:
+        metrics:
+          exporters:
+            - prometheus
+          receivers:
+            - otlp
+        traces:
+          exporters:
+            - otlp/otel-prod
+            - otlp/otel-dev
+            - otlphttp/otel-prod
+            - otlphttp/otel-dev
+          receivers:
+            - otlp
+  mode: deployment
+  serviceAccount: otel-collector
+
