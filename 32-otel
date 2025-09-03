@@ -76,7 +76,7 @@ rules:
       - 'tempo.grafana.com'
     resources:
       - otel-prod
-      - otel-dev
+      - otel-nonprod
     resourceNames:
       - traces
     verbs:
@@ -138,8 +138,8 @@ spec:
     authentication:
       - tenantName: otel-prod
         tenantId: "otel-prod"
-      - tenantName: otel-dev
-        tenantId: "otel-dev"
+      - tenantName: otel-nonprod
+        tenantId: "otel-nonprod"
   template:
     gateway:
       enabled: true
@@ -163,7 +163,7 @@ rules:
       - 'tempo.grafana.com'
     resources:
       - otel-prod
-      - otel-dev
+      - otel-nonprod
     resourceNames:
       - traces
     verbs:
