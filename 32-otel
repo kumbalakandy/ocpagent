@@ -302,6 +302,7 @@ metadata:
   name: cluster-collector
   namespace: otel
 spec:
+  serviceAccount: otel-collector
   mode: deployment
   observability:
     metrics:
@@ -345,5 +346,3 @@ spec:
           receivers: [otlp]
           processors: []
           exporters: [otlp/otel-prod,otlp/otel-nonprod]
-
-
