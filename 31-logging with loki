@@ -1,0 +1,233 @@
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: logging  
+spec:
+  type: Logging  
+  logging:
+    lokiStack:
+      name: logging-loki  
+    logsLimit: 50
+    timeout: 30s
+    schema: otel 
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: manager-rolebinding
+roleRef:                                           
+  apiGroup: rbac.authorization.k8s.io              
+  kind: ClusterRole                                
+  name: cluster-logging-operator                   
+subjects:                                          
+  - kind: ServiceAccount                           
+    name: cluster-logging-operator                 
+    namespace: openshift-logging                   
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-logging-write-application-logs
+rules:                                              
+  - apiGroups:                                      
+      - loki.grafana.com                            
+    resources:                                      
+      - application                                 
+    resourceNames:                                  
+      - logs                                        
+    verbs:                                          
+      - create                                      
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-logging-write-audit-logs
+rules:                                              
+  - apiGroups:                                      
+      - loki.grafana.com                            
+    resources:                                      
+      - audit                                       
+    resourceNames:                                  
+      - logs                                        
+    verbs:                                          
+      - create                                      
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-logging-write-infrastructure-logs
+rules:                                              
+  - apiGroups:                                      
+      - loki.grafana.com                            
+    resources:                                      
+      - infrastructure                              
+    resourceNames:                                  
+      - logs                                        
+    verbs:                                          
+      - create                                      
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clusterlogforwarder-editor-role
+rules:                                              
+  - apiGroups:                                      
+      - observability.openshift.io                  
+    resources:                                      
+      - clusterlogforwarders                        
+    verbs:                                          
+      - create                                      
+      - delete                                      
+      - get                                         
+      - list                                        
+      - patch                                       
+      - update                                      
+      - watch   
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-loki
+  namespace: openshift-logging
+stringData:
+  access_key_id: NozakWBklsacOoXUGzr9
+  access_key_secret: C0kK4UYBom2PM2Y6DxMSP3O4WpbGXYjd1ttQrCLQ
+  bucketnames: logging-loki-s3-ee400601-eabf-4f98-9f51-4fc83bb50f0a
+  endpoint: https://s3-openshift-storage.apps.aic.kodevirtual.com:443
+
+
+                                    
+
+---
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: loki-logging
+  namespace: openshift-logging
+spec:
+  limits:
+    global:
+      ingestion:
+        ingestionBurstSize: 40
+        ingestionRate: 20
+        maxGlobalStreamsPerTenant: 25000
+      queries:
+        maxChunksPerQuery: 2000000
+        maxEntriesLimitPerQuery: 10000
+        maxQuerySeries: 3000
+        queryTimeout: 3m
+      retention:
+        days: 5
+        streams:
+        - days: 3
+          priority: 1
+          selector: '{log_type="audit"}'
+        - days: 3
+          priority: 1
+          selector: '{log_type="infrastructure"}'
+  managementState: Managed
+  replicationFactor: 1
+  rules:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        openshift.io/cluster-monitoring: "true"
+    selector:
+      matchLabels:
+        openshift.io/cluster-monitoring: "true"
+  size: 1x.extra-small
+  storage:
+    schemas:
+    - effectiveDate: "2025-08-24"
+      version: v13
+    secret:
+      name: s3-loki
+      type: s3
+    tls:
+      caName: loki-s3-ca
+  storageClassName: ocs-storagecluster-ceph-rbd
+  tenants:
+    mode: openshift-network
+
+
+
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: collector                 # NOTE: see warning below about this name in openshift-logging
+  # namespace: openshift-logging  # (set this where you create the CLF)
+spec:
+  managementState: Managed
+
+  outputs:
+  - name: rsyslog-east
+    type: syslog
+    syslog:
+      appName: kubeAudit
+      enrichment: KubernetesMinimal
+      facility: user
+      payloadKey: "{.message}"
+      rfc: RFC5424
+      severity: warning
+      url: "udp://172.21.45.241:514"
+
+  # NEW: in-cluster LokiStack output
+  - name: lokistack-out
+    type: lokiStack
+    lokiStack:
+      target:
+        name: logging-loki           # <-- your LokiStack name
+        namespace: openshift-logging # <-- LokiStack namespace
+      authentication:
+        token:
+          from: serviceAccount       # uses this CLF's serviceAccount token
+      tls:
+        ca:
+          key: service-ca.crt
+          configMapName: openshift-service-ca.crt
+
+  inputs:
+  - name: my-audit
+    type: audit
+    audit:
+      sources:
+        - kubeAPI
+        - openshiftAPI
+
+  filters:
+  - name: my-policy
+    type: kubeAPIAudit
+    kubeAPIAudit:
+      omitStages: [RequestReceived]
+      rules:
+      - level: Request
+        users: ["system:anonymous"]
+        nonResourceURLs: ["/oauth/authorize*"]
+        verbs: ["get"]
+      - level: None
+        users: ["system:*"]
+      - level: Request
+        verbs: ["create","patch","delete"]
+      - level: Request
+        users: ["system:serviceaccount:openshift-authentication:oauth-openshift"]
+        verbs: ["create"]
+        resources:
+        - group: "oauth.openshift.io"
+          resources: ["oauthaccesstokens"]
+      - level: None
+
+  pipelines:
+  - name: syslog-east
+    inputRefs:  ["my-audit"]
+    outputRefs: ["rsyslog-east"]
+    filterRefs: ["my-policy"]
+
+  # NEW: forward the same audited logs to LokiStack
+  - name: to-lokistack-audit
+    inputRefs:  ["my-audit"]
+    outputRefs: ["lokistack-out"]
+    filterRefs: ["my-policy"]
+
+  serviceAccount:
+    name: logging-collector
