@@ -1,0 +1,267 @@
+---
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  labels:
+    kubernetes.io/metadata.name: openshift-tempo-operator
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-tempo-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-tempo-operator
+  namespace: openshift-tempo-operator
+spec:
+  upgradeStrategy: Default
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: tempo-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: otel
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempostack-traces-reader
+rules:
+  - apiGroups:
+      - 'tempo.grafana.com'
+    resources:
+      - otel-prod
+      - otel-dev
+    resourceNames:
+      - traces
+    verbs:
+      - 'get'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tempostack-traces-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempostack-traces-reader
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:authenticated
+
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: otel-tempo-s3
+  namespace: otel
+spec:
+  generateBucketName: otel-tempo-s3
+  storageClassName: openshift-storage.noobaa.io
+
+
+
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otel-s3-tempo
+  namespace: otel
+stringData:
+  access_key_id: X6JaPiI2YmuL2EGQuhaI
+  access_key_secret: 8RvNhQ7G0HTAFa2Tge3POHaCrwUirqiCWmcB9oBh
+  bucket: otel-tempo-s3-f576e2fc-344d-4bbd-a7d5-ddce9b06a995
+  endpoint: https://s3.openshift-storage.svc
+
+
+---
+
+apiVersion: tempo.grafana.com/v1alpha1
+kind:  TempoStack
+metadata:
+  name: otel
+  namespace: otel
+spec:
+  storage:
+    secret:
+      name: otel-s3-tempo
+      type: s3
+  tenants:
+    mode: openshift
+    authentication:
+      - tenantName: otel-prod
+        tenantId: "otel-prod"
+      - tenantName: otel-dev
+        tenantId: "otel-dev"
+  template:
+    gateway:
+      enabled: true
+    queryFrontend:
+      jaegerQuery:
+        enabled: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: otel
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempostack-traces-write
+rules:
+  - apiGroups:
+      - 'tempo.grafana.com'
+    resources:
+      - otel-prod
+      - otel-dev
+    resourceNames:
+      - traces
+    verbs:
+      - 'create'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tempostack-traces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempostack-traces-write
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: otel
+
+---
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: cluster-collector
+  namespace: otel
+spec:
+  mode: deployment
+  serviceAccount: otel-collector
+  config: |
+      receivers:
+        otlp:
+          protocols:
+            grpc: {}
+            http: {}
+      processors:
+        routing:
+          from_attribute: k8s.namespace.name
+          attribute_source: resource
+          default_exporters: [debug]
+          table:
+          - value: "otel-prod"
+            exporters:
+            - otlp/otel-prod
+          - value: "otel-dev"
+            exporters:
+            - otlp/otel-dev
+      extensions:
+        bearertokenauth:
+          filename: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+      exporters:
+        debug:
+          verbosity: detailed
+          sampling_initial: 1000
+          sampling_thereafter: 2000
+        otlp/otel-demo-1:
+          endpoint: tempo-otel-gateway.otel.svc.cluster.local:8090
+          tls:
+            insecure: false
+            ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+          auth:
+            authenticator: bearertokenauth
+          headers:
+            X-Scope-OrgID: "otel-prod"
+        otlp/otel-demo-2:
+          endpoint: tempo-otel-gateway.otel.svc.cluster.local:8090
+          tls:
+            insecure: false
+            ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+          auth:
+            authenticator: bearertokenauth
+          headers:
+            X-Scope-OrgID: "otel-dev"
+      service:
+        extensions: [bearertokenauth]
+        pipelines:
+          traces:
+            receivers: [otlp]
+            processors: [routing]
+            exporters: [otlp/otel-prod,otlp/otel-dev, debug]
+
+
+
+APP
+
+cluster-collector-collector
+
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: petclinic
+spec:
+  exporter:
+    endpoint: http://cluster-collector-collector.otel.svc.cluster.local:4318
+
+
+Warning alert:Admission Webhook Warning
+Instrumentation petclinic violates policy 299 - "sampler type not set"
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: petclinic
+spec:
+  selector:
+    matchLabels:
+      app: petclinic
+  template:
+    metadata:
+      labels:
+        app: petclinic
+      annotations:
+        instrumentation.opentelemetry.io/inject-java: petclinic
+    spec:
+      containers:
+      - image: springcommunity/spring-framework-petclinic:6.0.3
+        name: petclinic
+
+
+
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: petclinic
+  namespace: otel
+spec:
+  exporter:
+    endpoint: http://cluster-collector-collector.otel.svc.cluster.local:4317
+  env:
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: k8s.namespace.name=otel-prod
+
+
+
