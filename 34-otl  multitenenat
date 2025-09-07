@@ -304,36 +304,59 @@ spec:
   serviceAccount: otel-collector
 	
 ---	
-apiVersion: opentelemetry.io/v1alpha1
 kind: Instrumentation
 metadata:
   name: prod
   namespace: otel
 spec:
   exporter:
-    endpoint: 'http://prod-collector-collector.otel.svc:4317'
-  sampler:
-    argument: '1'
-    type: parentbased_traceidratio
+    endpoint: http://prod-collector-collector.otel.svc:4317
   propagators:
     - tracecontext
     - baggage
----	
-apiVersion: opentelemetry.io/v1alpha1
+    - b3
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://prod-collector-collector.otel.svc:4318
+  dotnet:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://prod-collector-collector.otel.svc:4318
+  go:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://prod-collector-collector.otel.svc:4318
+---
 kind: Instrumentation
 metadata:
   name: nonprod
   namespace: otel
 spec:
   exporter:
-    endpoint: 'http://nonprod-collector-collector.otel.svc:4317'
-  sampler:
-    argument: '1'
-    type: parentbased_traceidratio
+    endpoint: http://nonprod-collector-collector.otel.svc:4317
   propagators:
     - tracecontext
     - baggage
-	
+    - b3
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://nonprod-collector-collector.otel.svc:4318
+  dotnet:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://nonprod-collector-collector.otel.svc:4318
+  go:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://nonprod-collector-collector.otel.svc:4318
 	
 ---
 apiVersion: v1
