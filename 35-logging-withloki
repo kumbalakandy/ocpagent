@@ -1,0 +1,130 @@
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: logging-loki-obc
+  namespace: openshift-logging
+spec:
+  generateBucketName: logging-loki-obc
+  storageClassName: openshift-storage.noobaa.io
+
+---
+1) oc get obc netobserver-loki-obc -n openshift-storage -ojson | jq .spec.bucketName 
+2) oc get secret netobserver-loki-obc -n openshift-storage --template='{{index .data "AWS_ACCESS_KEY_ID" | base64decode}}' && echo
+3)  oc get secret netobserver-loki-obc -n openshift-storage --template='{{index .data "AWS_SECRET_ACCESS_KEY" | base64decode}}' && echo
+4) oc get cm netobserver-loki-obc -n openshift-storage -ojson | jq .data.BUCKET_NAME
+5) oc get cm netobserver-loki-obc -n openshift-storage -ojson | jq .data.BUCKET_HOST
+6) oc get routes -n openshift-storage | grep s3
+7)  oc get noobaa noobaa -ojson -n openshift-storage | jq .status.services.serviceS3.externalDNS
+
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: loki-s3-logging
+  namespace: netobserv
+stringData:
+  access_key_id: Rokrxxxxxxxxxxxxxxxx # <------(2)
+  access_key_secret: 06jFakXCKyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy # <------(3)
+  bucketnames: netobserver-loki-obc-b98cb0f6-5493-4a46-b4ce-c41f51b07768 # <------(1)
+  endpoint: http://s3-openshift-storage.apps.clusterName.domain.org # <------(7)
+
+
+mkdir logging && cd logging
+
+oc extract secret/$(oc get ingresscontroller -n openshift-ingress-operator default -o json | jq '.spec.defaultCertificate.name // "router-certs-default"' -r) -n openshift-ingress --confirm
+
+oc -n netobserv create configmap loki-s3-ca --from-file=service-ca.crt=tls.crt
+
+
+---
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: logging-loki
+  namespace: openshift-logging
+spec:
+  limits:
+   global: 
+      retention: 
+        days: 3
+        streams:
+        - days: 2
+          priority: 1
+          selector: '{log_type="application"}'
+        - days: 1
+          priority: 1
+          selector: '{log_type="infrastructure"}'
+  managementState: Managed
+  replicationFactor: 2
+  size: 1x.small
+  storage:
+    schemas:
+    - version: v13
+      effectiveDate: "2025-09-08"
+    secret:
+      name: loki-s3-logging
+      type: s3
+      credentialMode: static
+    tls:
+       caName: loki-s3-ca 
+  storageClassName: ocs-storagecluster-ceph-rbd
+  tenants:
+    mode: openshift-logging
+---
+
+oc project openshift-logging
+oc create sa logcollector
+oc adm policy add-cluster-role-to-user lokistack-tenant-logs -z logcollector -n openshift-logging
+oc adm policy add-cluster-role-to-user collect-application-logs -z logcollector -n openshift-logging
+oc adm policy add-cluster-role-to-user collect-infrastructure-logs -z logcollector -n openshift-logging
+oc adm policy add-cluster-role-to-user collect-audit-logs -z logcollector -n openshift-logging
+oc adm policy add-cluster-role-to-user logging-collector-logs-writer  -z logcollector -n openshift-logging
+
+
+---
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: collector
+  namespace: openshift-logging
+spec:
+  collector:
+    resources: {}
+  outputs:
+  - name: default-lokistack
+    lokiStack:
+      authentication:
+        token:
+          from: serviceAccount
+      target:
+        name: logging-loki
+        namespace: openshift-logging
+    tls:
+      ca:
+        key: service-ca.crt
+        configMapName: openshift-service-ca.crt
+    type: lokiStack
+  pipelines:
+  - name: default-before
+    inputRefs:
+    - infrastructure
+    - application
+    - audit
+    outputRefs:
+    - default-lokistack
+  serviceAccount:
+    name: logcollector
+---
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: logging
+spec:
+  type: Logging
+  logging:
+    lokiStack:
+      name: logging-loki
+    logsLimit: 50
+    timeout: 30s
