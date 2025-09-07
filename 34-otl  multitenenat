@@ -1,0 +1,395 @@
+---
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  labels:
+    kubernetes.io/metadata.name: openshift-opentelemetry-operator
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-opentelemetry-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-opentelemetry-operator
+  namespace: openshift-opentelemetry-operator
+spec:
+  upgradeStrategy: Default
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: opentelemetry-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+
+---
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  labels:
+    kubernetes.io/metadata.name: openshift-tempo-operator
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-tempo-operator
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-tempo-operator
+  namespace: openshift-tempo-operator
+spec:
+  upgradeStrategy: Default
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: tempo-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: otel
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempostack-traces-reader
+rules:
+  - apiGroups:
+      - 'tempo.grafana.com'
+    resources:
+      - prod
+      - nonprod
+    resourceNames:
+      - traces
+    verbs:
+      - 'get'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tempostack-traces-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempostack-traces-reader
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:authenticated
+
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: otel-tempo-s3
+  namespace: otel
+spec:
+  generateBucketName: otel-tempo-s3
+  storageClassName: openshift-storage.noobaa.io
+
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otel-s3-bucket
+  namespace: otel
+stringData:
+  access_key_id: N3im32RHs972s38v6EUS
+  access_key_secret: iZe97Foi9H7uM/I9yDs6+TCU8FXXln7RTNBRwhG5
+  bucket: otel-tempo-s3-f5fa1b8d-a584-4e97-bf7d-515ecb5dfdbd
+  endpoint: https://s3.openshift-storage.svc
+
+
+---
+
+apiVersion: tempo.grafana.com/v1alpha1
+kind:  TempoStack
+metadata:
+  name: otel
+  namespace: otel
+spec:
+  storage:
+    secret:
+      name: otel-s3-bucket
+      type: s3
+  tenants:
+    mode: openshift
+    authentication:
+      - tenantName: prod
+        tenantId: "prod"
+      - tenantName: nonprod
+        tenantId: "nonprod"
+  template:
+    gateway:
+      enabled: true
+    queryFrontend:
+      jaegerQuery:
+        enabled: true
+		
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: otel
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempostack-traces-write
+rules:
+  - apiGroups:
+      - 'tempo.grafana.com'
+    resources:
+      - prod
+      - nonprod
+    resourceNames:
+      - traces
+    verbs:
+      - 'create'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tempostack-traces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempostack-traces-write
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: otel
+
+
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: prod-collector
+  namespace: otel
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+  deploymentUpdateStrategy: {}
+  config:
+    exporters:
+      otlp/prod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'tempo-otel-gateway.otel.svc.cluster.local:8090'
+        headers:
+          X-Scope-OrgID: prod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlphttp/prod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'https://tempo-otel-gateway.otel.svc.cluster.local:8080/api/traces/v1/prod'
+        headers:
+          X-Scope-OrgID: prod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      prometheus:
+        endpoint: '0.0.0.0:8889'
+        resource_to_telemetry_conversion:
+          enabled: true
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+    processors: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    service:
+      extensions:
+        - bearertokenauth
+      pipelines:
+        metrics:
+          exporters:
+            - prometheus
+          receivers:
+            - otlp
+        traces:
+          exporters:
+            - otlp/prod
+            - otlphttp/prod
+          receivers:
+            - otlp
+  mode: deployment
+  serviceAccount: otel-collector
+---
+
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: nonprod-collector
+  namespace: otel
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+  deploymentUpdateStrategy: {}
+  config:
+    exporters:
+      otlp/nonprod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'tempo-otel-gateway.otel.svc.cluster.local:8090'
+        headers:
+          X-Scope-OrgID: nonprod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlphttp/nonprod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'https://tempo-otel-gateway.otel.svc.cluster.local:8080/api/traces/v1/nonprod'
+        headers:
+          X-Scope-OrgID: nonprod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      prometheus:
+        endpoint: '0.0.0.0:8889'
+        resource_to_telemetry_conversion:
+          enabled: true
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+    processors: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    service:
+      extensions:
+        - bearertokenauth
+      pipelines:
+        metrics:
+          exporters:
+            - prometheus
+          receivers:
+            - otlp
+        traces:
+          exporters:
+            - otlp/nonprod
+            - otlphttp/nonprod
+          receivers:
+            - otlp
+  mode: deployment
+  serviceAccount: otel-collector
+	
+---	
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: prod
+  namespace: otel
+spec:
+  exporter:
+    endpoint: 'http://prod-collector-collector.otel.svc:4317'
+  sampler:
+    argument: '1'
+    type: parentbased_traceidratio
+  propagators:
+    - tracecontext
+    - baggage
+---	
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: nonprod
+  namespace: otel
+spec:
+  exporter:
+    endpoint: 'http://nonprod-collector-collector.otel.svc:4317'
+  sampler:
+    argument: '1'
+    type: parentbased_traceidratio
+  propagators:
+    - tracecontext
+    - baggage
+	
+	
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prod-petclinic
+  labels:
+    env: prod
+    scope: tenant
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "otel/prod"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nonprod-petclinic
+  labels:
+    env: prod
+    scope: tenant
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "otel/nonprod"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: prod-petclinic
+  name: petclinic-prod
+spec:
+  selector:
+    matchLabels:
+      app: petclinic
+  template:
+    metadata:
+      labels:
+        app: petclinic
+    spec:
+      containers:
+      - image: springcommunity/spring-framework-petclinic:6.0.3
+        name: petclinic
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nonprod-petclinic
+  name: petclinic-nonprod
+spec:
+  selector:
+    matchLabels:
+      app: petclinic
+  template:
+    metadata:
+      labels:
+        app: petclinic
+    spec:
+      containers:
+      - image: springcommunity/spring-framework-petclinic:6.0.3
+        name: petclinic
