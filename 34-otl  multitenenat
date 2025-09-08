@@ -434,6 +434,8 @@ spec:
     metadata:
       labels:
         app: py-trace-demo
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: otel/prod
     spec:
       containers:
         - name: app
