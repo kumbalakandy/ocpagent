@@ -416,3 +416,37 @@ spec:
       containers:
       - image: springcommunity/spring-framework-petclinic:6.0.3
         name: petclinic
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: py-trace-demo
+  namespace: prod-petclinic
+  labels:
+    app: py-trace-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: py-trace-demo
+  template:
+    metadata:
+      labels:
+        app: py-trace-demo
+    spec:
+      containers:
+        - name: app
+          image: akumbalakandy/py-trace-demo:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: "/", port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: "/", port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 20
