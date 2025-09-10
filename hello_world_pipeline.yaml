@@ -83,3 +83,23 @@ root:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.3
+
+
+
+
+
+
+registry.redhat.io
+*.quay.io
+quay.io
+api.openshift.com
+0.rhel.pool.ntp.org
+access.redhat.com
+registry.devfile.io
+*.dscx.akamaiedge.net
+registry-1.docker.io
+auth.docker.io
+*.docker.io
+*.r2.cloudflarestorage.com
+console.redhat.com
+files.pythonhosted.org
