@@ -1,5 +1,6 @@
 $ oc label node <node-name> node-role.kubernetes.io/infra=""
 $ oc label node <node-name> node-role.kubernetes.io=infra
+oc adm taint nodes -l node-role.kubernetes.io/infra node-role.kubernetes.io/infra=reserved:NoSchedule node-role.kubernetes.io/infra=reserved:NoExecute
 
 apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfigPool
