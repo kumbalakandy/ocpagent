@@ -6,7 +6,8 @@ metadata:
 spec:
   storageClassName: ocs-storagecluster-ceph-rgw
   generateBucketName: registry-bucket
-
+  additionalConfig:   
+    maxSize: "100G"
 
 
 
