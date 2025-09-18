@@ -5,16 +5,18 @@ metadata:
   namespace: openshift-monitoring
 data:
   config.yaml: |
+    enableUserWorkload: true
       prometheusK8s:
-        retention: <time to retain monitoring files, e.g. 24h>
+        retention: 15d
+        retentionSize: 80Gi
         volumeClaimTemplate:
           metadata:
             name: ocs-prometheus-claim
           spec:
-            storageClassName: ocs-storagecluster-ceph-rbd
+            storageClassName: ocs-storagecluster-cephfs
             resources:
               requests:
-                storage: <size of claim, e.g. 40Gi>
+                storage: 100Gi
       alertmanagerMain:
         volumeClaimTemplate:
           metadata:
@@ -23,4 +25,142 @@ data:
             storageClassName: ocs-storagecluster-ceph-rbd
             resources:
               requests:
-                storage: <size of claim, e.g. 40Gi>
+                storage: 20Gi
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+data:
+  config.yaml: |
+    prometheus:
+      retention: 15d
+      retentionSize: 80Gi
+      # optional placement on infra nodes
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+        - key: "node-role.kubernetes.io/infra"
+          operator: "Exists"
+          effect: "NoSchedule"
+      volumeClaimTemplate:
+        metadata:
+          name: ocs-user-mon-prometheus-pvc
+        spec:
+          storageClassName: ocs-storagecluster-cephfs
+          resources:
+            requests:
+              storage: 100Gi
+    thanosRuler:
+      # optional placement on infra nodes
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+        - key: "node-role.kubernetes.io/infra"
+          operator: "Exists"
+          effect: "NoSchedule"
+      volumeClaimTemplate:
+        metadata:
+          name: ocs-user-mon-thanosruler-pvc
+        spec:
+          storageClassName: ocs-storagecluster-cephfs
+          resources:
+            requests:
+              storage: 20Gi
+
+-------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |+
+    enableUserWorkload: true
+    alertmanagerMain:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ocs-storagecluster-cephfs
+          resources:
+            requests:
+              storage: 20Gi
+    prometheusK8s:
+      retention: 15d
+      retentionSize: 80Gi
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ocs-storagecluster-cephfs   
+          resources:
+            requests:
+              storage: 100Gi      
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
+    prometheusOperator:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
+    k8sPrometheusAdapter:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
+    kubeStateMetrics:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
+    telemeterClient:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
+    openshiftStateMetrics:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
+    thanosQuerier:
+      nodeSelector:
+        node-role.kubernetes.io/infra: ""
+      tolerations:
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/infra
+        value: reserved
+        effect: NoExecute
