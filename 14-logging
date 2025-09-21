@@ -28,6 +28,13 @@ spec:
   name: cluster-logging
   source: redhat-operators 
   sourceNamespace: openshift-marketplace
+  config:
+    nodeSelector:
+      node-role.kubernetes.io/infra: ""   # ensures operator pods land on infra nodes
+    tolerations:
+      - key: "node-role.kubernetes.io/infra"
+        operator: "Exists"
+        effect: "NoSchedule"
 ---
 kind: Namespace
 apiVersion: v1
