@@ -52,3 +52,45 @@ spec:
         chunkSizeCalculationPolicy: Static
         metadataSize: 1Gi
         metadataSizeCalculationPolicy: Host
+
+----
+apiVersion: lvm.topolvm.io/v1alpha1
+kind: LVMCluster
+metadata:
+  name: my-lvmcluster
+spec:
+  storage:
+    deviceClasses:
+    - name: vg1
+      fstype: xfs 
+      default: true
+      nodeSelector:  
+        nodeSelectorTerms:
+          - matchExpressions:
+            - key: cluster.ocs.openshift.io/openshift-storage
+              operator: Exists
+      deviceSelector:
+        optionalPaths:
+        -  /dev/disk/by-id/wwn-0x6000c29dfe2d3ab6d4166655764a1274
+        -  /dev/disk/by-id/wwn-0x6000c297ea09c7bf3b06c94dc895872d
+        -  /dev/disk/by-id/wwn-0x6000c293fd4484cc54aec517b09d7eeb
+        -  /dev/disk/by-id/wwn-0x6000c2959d47402ed8fcdd8de37fb895
+        -  /dev/disk/by-id/wwn-0x6000c297c359447593c37090668b31fa
+        -  /dev/disk/by-id/wwn-0x6000c29103bb815e35ea9e4688c9d469
+        -  /dev/disk/by-id/wwn-0x6000c29148cc507f6136e597686b7def
+        -  /dev/disk/by-id/wwn-0x6000c2995c0940e1c652c17586c79943
+        -  /dev/disk/by-id/wwn-0x6000c29453a83e492836049cd90d9c04
+        -  /dev/disk/by-id/wwn-0x6000c29ecbea0a05b3540aed90dbbc6c
+        -  /dev/disk/by-id/wwn-0x6000c296077c88571296d3709e4774ce
+        -  /dev/disk/by-id/wwn-0x6000c29786c1aef73b8b333c45512586
+        -  /dev/disk/by-id/wwn-0x6000c298852e7261519d1ecbe723854a
+        -  /dev/disk/by-id/wwn-0x6000c2912ceb0fc2fcd2c696e826f823
+        forceWipeDevicesAndDestroyAllData: false
+      thinPoolConfig:
+        name: thin-pool-1
+        sizePercent: 90
+        overprovisionRatio: 10
+        chunkSize: 128Ki
+        chunkSizeCalculationPolicy: Static
+        metadataSize: 1Gi
+        metadataSizeCalculationPolicy: Host
