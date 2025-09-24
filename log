@@ -99,3 +99,66 @@ items:
         - syslog-severity-filter
     serviceAccount:
       name: logcollector
+
+
+
+
+
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: logging-obc
+  namespace: openshift-logging
+spec:
+  storageClassName: ocs-storagecluster-ceph-rgw
+  generateBucketName: logging-obc
+  additionalConfig:   
+    maxSize: "500G"
+
+
+oc get route ocs-storagecluster-cephobjectstore -n openshift-storage --template='{{ .spec.host }}'
+
+
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: logging-loki
+  namespace: openshift-logging
+spec:
+  limits:
+    global:
+      ingestion:
+        ingestionBurstSize: 40
+        ingestionRate: 20
+        maxGlobalStreamsPerTenant: 25000
+      queries:
+        maxChunksPerQuery: 2000000
+        maxEntriesLimitPerQuery: 10000
+        maxQuerySeries: 3000
+        queryTimeout: 3m
+      retention:
+        days: 3
+        streams:
+        - days: 2
+          priority: 1
+          selector: '{log_type="application"}'
+        - days: 1
+          priority: 1
+          selector: '{log_type="infrastructure"}'
+  managementState: Managed
+  replicationFactor: 2
+  size: 1x.extra-small
+  storage:
+    schemas:
+    - effectiveDate: "2025-01-01"
+      version: v13
+    secret:
+      credentialMode: static
+      name: s3-loki
+      type: s3
+    tls:
+      caName: loki-s3-ca
+  storageClassName: ocs-storagecluster-ceph-rbd
+  tenants:
+    mode: openshift-logging
+
