@@ -1,0 +1,101 @@
+apiVersion: v1
+items:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: qradar
+    namespace: openshift-logging
+  spec:
+    collector:
+      resources:
+        limits:
+          cpu: "6"
+          memory: 8Gi
+        requests:
+          cpu: "4"
+          memory: 4Gi
+    managementState: Managed
+    outputs:
+    - name: qradar
+      syslog:
+        appName: kubeAudit
+        enrichment: KubernetesMinimal
+        facility: user
+        payloadKey: '{.message}'
+        rfc: RFC5424
+        severity: warning
+        url: tcp://10.115.4.106:514
+      type: syslog
+    - lokiStack:
+        authentication:
+          token:
+            from: serviceAccount
+        target:
+          name: logging-loki
+          namespace: openshift-logging
+      name: default-lokistack
+      tls:
+        ca:
+          configMapName: openshift-service-ca.crt
+          key: service-ca.crt
+      type: lokiStack
+    inputs:
+    - name: log-audit
+      type: audit
+      audit:
+        sources: [kubeAPI, openshiftAPI]
+    - name: log-app
+      type: application
+      application: {}
+    - name: log-infra
+      type: infrastructure
+      infrastructure:
+        sources: [node, container]
+    filters:
+    - kubeAPIAudit:
+        rules:
+        - level: None
+          users:
+          - "system:*"
+        - level: RequestResponse
+      name: audit-filter
+      type: kubeAPIAudit
+    - name: loki-severity-filter
+      type: drop
+      drop:
+        - test:
+          - field: .log_type
+            matches: "application|infrastructure"
+          - field: .level
+            notMatches: "(?i)error|critical|fatal"
+    - name: syslog-severity-filter
+      type: drop
+      drop:
+        - test:
+          - field: .log_type
+            matches: "application|infrastructure"
+          - field: .level
+            notMatches: "(?i)warning|error|critical|fatal"
+    pipelines:
+    - name: to-lokistack
+      inputRefs: 
+        - log-audit
+        - log-app
+        - log-infra
+      outputRefs: 
+        - default-lokistack
+      filterRefs:
+        - audit-filter
+        - loki-severity-filter
+    - name: to-external-syslog
+      inputRefs: 
+        - log-audit
+        - log-app
+        - log-infra
+      outputRefs: 
+        - qradar
+      filterRefs:
+        - audit-filter
+        - syslog-severity-filter
+    serviceAccount:
+      name: logcollector
