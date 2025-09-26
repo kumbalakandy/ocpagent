@@ -57,6 +57,46 @@ spec:
   storageClassName: aan-zdc-seha-edge-clu01-block-replica3
   tenants:
     mode: openshift-logging
+
+spec:
+  limits:
+    global:
+      ingestion:
+        ingestionBurstSize: 40
+        ingestionRate: 20
+        maxGlobalStreamsPerTenant: 25000
+      queries:
+        maxChunksPerQuery: 2000000
+        maxEntriesLimitPerQuery: 10000
+        maxQuerySeries: 3000
+        queryTimeout: 3m
+      retention:
+        days: 3
+        streams:
+        - days: 2
+          priority: 1
+          selector: '{log_type="application"}'
+        - days: 1
+          priority: 1
+          selector: '{log_type="infrastructure"}'
+  managementState: Managed
+  replicationFactor: 2
+  size: 1x.small
+  storage:
+    schemas:
+    - effectiveDate: "2025-01-01"
+      version: v13
+    secret:
+      credentialMode: static
+      name: s3-secret-logging
+      type: s3
+    tls:
+      caName: loki-s3-ca
+  storageClassName: aan-zdc-seha-edge-clu01-block-replica3
+  tenants:
+    mode: openshift-logging
+
+
 ---
 apiVersion: observability.openshift.io/v1
 kind: ClusterLogForwarder
