@@ -1,0 +1,233 @@
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: opentelemetry-obc
+  namespace: openshift-storage
+spec:
+  generateBucketName: opentelemetry-obc
+  storageClassName: openshift-storage.noobaa.io
+  additionalConfig:
+    maxSize: "200G"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-secret-opentelemetry
+  namespace: otel
+stringData:
+  access_key_id: 229fwVZOgJU6Qv6sIxJr
+  access_key_secret: AtYw4oXxE8sO06DL/AxJ8zthbwEbJKWpEjkemg9Y
+  bucket: opentelemetry-obc-12d39fcf-d944-4621-9b95-6b08bd2c41e6
+  endpoint: https://s3-openshift-storage.apps.aan-zdc-seha-edge-clu01.purecloud.ae
+  
+---
+apiVersion: tempo.grafana.com/v1alpha1
+kind:  TempoStack
+metadata:
+  name: otel
+  namespace: otel
+spec:
+  storage:
+    secret:
+      name: s3-secret-opentelemetry
+      type: s3
+  tenants:
+    mode: openshift
+    authentication:
+      - tenantName: prod
+        tenantId: "prod"
+      - tenantName: nonprod
+        tenantId: "nonprod"
+  template:
+    gateway:
+      enabled: true
+    queryFrontend:
+      jaegerQuery:
+        enabled: true
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: prod-collector
+  namespace: otel
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+  deploymentUpdateStrategy: {}
+  config:
+    exporters:
+      otlp/prod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'tempo-otel-gateway.otel.svc.cluster.local:8090'
+        headers:
+          X-Scope-OrgID: prod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlphttp/prod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'https://tempo-otel-gateway.otel.svc.cluster.local:8080/api/traces/v1/prod'
+        headers:
+          X-Scope-OrgID: prod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      prometheus:
+        endpoint: '0.0.0.0:8889'
+        resource_to_telemetry_conversion:
+          enabled: true
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+    processors: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    service:
+      extensions:
+        - bearertokenauth
+      pipelines:
+        metrics:
+          exporters:
+            - prometheus
+          receivers:
+            - otlp
+        traces:
+          exporters:
+            - otlp/prod
+            - otlphttp/prod
+          receivers:
+            - otlp
+  mode: deployment
+  serviceAccount: otel-collector
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: nonprod-collector
+  namespace: otel
+spec:
+  observability:
+    metrics:
+      enableMetrics: true
+  deploymentUpdateStrategy: {}
+  config:
+    exporters:
+      otlp/nonprod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'tempo-otel-gateway.otel.svc.cluster.local:8090'
+        headers:
+          X-Scope-OrgID: nonprod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      otlphttp/nonprod:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: 'https://tempo-otel-gateway.otel.svc.cluster.local:8080/api/traces/v1/nonprod'
+        headers:
+          X-Scope-OrgID: nonprod
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      prometheus:
+        endpoint: '0.0.0.0:8889'
+        resource_to_telemetry_conversion:
+          enabled: true
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+    processors: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    service:
+      extensions:
+        - bearertokenauth
+      pipelines:
+        metrics:
+          exporters:
+            - prometheus
+          receivers:
+            - otlp
+        traces:
+          exporters:
+            - otlp/nonprod
+            - otlphttp/nonprod
+          receivers:
+            - otlp
+  mode: deployment
+  serviceAccount: otel-collector
+---
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: prod
+  namespace: otel
+spec:
+  exporter:
+    endpoint: http://prod-collector-collector.otel.svc:4317
+  propagators:
+    - tracecontext
+    - baggage
+    - b3
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://prod-collector-collector.otel.svc:4318
+  dotnet:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://prod-collector-collector.otel.svc:4318
+  go:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://prod-collector-collector.otel.svc:4318
+
+---
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: nonprod
+  namespace: otel
+spec:
+  exporter:
+    endpoint: http://nonprod-collector-collector.otel.svc:4317
+  propagators:
+    - tracecontext
+    - baggage
+    - b3
+  sampler:
+    type: parentbased_traceidratio
+    argument: "1"
+  python:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://nonprod-collector-collector.otel.svc:4318
+  dotnet:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://nonprod-collector-collector.otel.svc:4318
+  go:
+    env:
+      - name: OTEL_EXPORTER_OTLP_ENDPOINT
+        value: http://nonprod-collector-collector.otel.svc:4318
+---
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: distributed-tracing
+spec:
+  type: DistributedTracing
