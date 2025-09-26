@@ -1,0 +1,72 @@
+---
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: netobserver-obc
+  namespace: openshift-storage
+spec:
+  generateBucketName: netobserver-obc
+  storageClassName: openshift-storage.noobaa.io
+  additionalConfig:
+    maxSize: "500G"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-secret-netobserv
+  namespace: netobserv
+stringData:
+  access_key_id: yyyJU9HqVH8pACvPnsTS
+  access_key_secret: X+oowTzoIC1QbmGHmd5T7T/+24WtDi1W1XRvQECb
+  bucketnames: netobserver-obc-77822b1e-3cc1-4643-b95a-a7a6a1e61b35
+  endpoint: https://s3-openshift-storage.apps.aan-zdc-seha-edge-clu01.purecloud.ae
+---
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: loki
+  namespace: netobserv
+spec:
+  limits:
+    global:
+      ingestion:
+        ingestionBurstSize: 40
+        ingestionRate: 20
+        maxGlobalStreamsPerTenant: 25000
+      queries:
+        maxChunksPerQuery: 2000000
+        maxEntriesLimitPerQuery: 10000
+        maxQuerySeries: 3000
+        queryTimeout: 3m
+      retention:
+        days: 31
+        streams:
+        - days: 15
+          priority: 1
+          selector: '{log_type="audit"}'
+        - days: 15
+          priority: 1
+          selector: '{log_type="infrastructure"}'
+  managementState: Managed
+  replicationFactor: 2
+  rules:
+    enabled: true
+    namespaceSelector:
+      matchLabels:
+        openshift.io/cluster-monitoring: "true"
+    selector:
+      matchLabels:
+        openshift.io/cluster-monitoring: "true"
+  size: 1x.small
+  storage:
+    schemas:
+    - effectiveDate: "2025-01-01"
+      version: v13
+    secret:
+      name: s3-secret-netobserv
+      type: s3
+    tls:
+      caName: loki-s3-ca
+  storageClassName: aan-zdc-seha-edge-clu01-block-replica3
+  tenants:
+    mode: openshift-network
