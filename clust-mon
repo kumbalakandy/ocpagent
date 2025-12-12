@@ -1,18 +1,30 @@
 apiVersion: v1
-data:
-  config.yaml: "enableUserWorkload: true \nprometheusK8s:\n  retention: 15d\n  retentionSize:
-    85GB\n  volumeClaimTemplate:\n    spec:\n      storageClassName: aan-zdc-seha-edge-clu01-file-replica3\n
-    \     resources:\n        requests:\n          storage: 150Gi\nalertmanagerMain:\n
-    \ enableUserAlertmanagerConfig: true \n  volumeClaimTemplate:\n    metadata:\n
-    \     name: alertmanager-claim-odf\n    spec:\n      storageClassName: aan-zdc-seha-edge-clu01-file-replica3\n
-    \     resources:\n        requests:\n          storage: 20Gi\n"
 kind: ConfigMap
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","data":{"config.yaml":"enableUserWorkload: true \nprometheusK8s:\n  retention: 15d\n  retentionSize: 85GB\n  volumeClaimTemplate:\n    spec:\n      storageClassName: aan-zdc-seha-edge-clu01-file-replica3\n      resources:\n        requests:\n          storage: 150Gi\nalertmanagerMain:\n  enableUserAlertmanagerConfig: true \n  volumeClaimTemplate:\n    metadata:\n      name: alertmanager-claim-odf\n    spec:\n      storageClassName: aan-zdc-seha-edge-clu01-file-replica3\n      resources:\n        requests:\n          storage: 100Gi\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"cluster-monitoring-config","namespace":"openshift-monitoring"}}
-  creationTimestamp: "2025-09-18T10:54:57Z"
   name: cluster-monitoring-config
   namespace: openshift-monitoring
-  resourceVersion: "1320905"
-  uid: d62f2fcc-2587-4201-9c86-a93365a75db7
+data:
+  config.yaml: |
+    enableUserWorkload: true
+
+    prometheusK8s:
+      retention: 15d
+      retentionSize: 85GB
+      volumeClaimTemplate:
+        spec:
+          storageClassName: aan-zdc-seha-edge-clu01-file-replica3
+          resources:
+            requests:
+              storage: 150Gi
+
+    alertmanagerMain:
+      enableUserAlertmanagerConfig: true
+      volumeClaimTemplate:
+        metadata:
+          name: alertmanager-claim-odf
+        spec:
+          storageClassName: aan-zdc-seha-edge-clu01-file-replica3
+          resources:
+            requests:
+              storage: 20Gi
+
