@@ -1,0 +1,30 @@
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: workbench-route
+  namespace: seha-demo-tenant01-non-prod
+spec:
+  host: chatbotwb.purecloud.ae
+  to:
+    kind: Service
+    name: workbench-svc
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+	
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workbench-svc
+  namespace: seha-demo-tenant01-non-prod
+spec:
+  selector:
+    app: chatbot-workbench-v1
+  ports:
+    - name: http
+      port: 80         
+      targetPort: 3000  
+  type: ClusterIP
