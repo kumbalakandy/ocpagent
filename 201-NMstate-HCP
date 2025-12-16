@@ -1,0 +1,119 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: pai-sn01-config
+  namespace: hcp-auh-kdc-pcs-hub-clu02
+  labels:
+    infraenvs.agent-install.openshift.io: auh-kdc-pcs-hub-clu02-infra
+    agent-install.openshift.io/nodepool: odf-platform
+    target-host: pai-sn01
+spec:
+  config:
+    interfaces:
+      - name: enp34s0f0np0
+        type: ethernet
+        state: up
+        mtu: 9000
+        mac-address: 8c:84:74:c3:68:50
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+      - name: enp34s0f1np1
+        type: ethernet
+        state: up
+        mtu: 9000
+        mac-address: 8c:84:74:c3:68:51
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+      - name: enp34s0f2np2
+        type: ethernet
+        state: up
+        mtu: 9000
+        mac-address: 8c:84:74:c3:68:52
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+      - name: enp34s0f3np3
+        type: ethernet
+        state: up
+        mtu: 9000
+        mac-address: 8c:84:74:c3:68:53
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+      - name: enp139s0f0np0
+        type: ethernet
+        state: up
+        mtu: 9000
+        mac-address: 14:23:f3:23:c4:10
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+      - name: enp139s0f1np1
+        type: ethernet
+        state: up
+        mtu: 9000
+        mac-address: 14:23:f3:23:c4:11
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+      - name: bond0
+        type: bond
+        state: up
+        mtu: 9000
+        description: LACP Bond for ODF Workers
+        ipv4:
+          enabled: false
+        ipv6:
+          enabled: false
+        link-aggregation:
+          mode: 802.3ad
+          ports: [enp34s0f0np0, enp34s0f1np1, enp34s0f2np2, enp34s0f3np3, enp139s0f0np0, enp139s0f1np1]
+          options:
+            miimon: "100"
+            lacp_rate: fast
+            xmit_hash_policy: layer2+3
+      - name: bond0.1122
+        type: vlan
+        state: up
+        vlan:
+          id: 1122
+          base-iface: bond0
+        ipv4:
+          enabled: true
+          dhcp: false
+          address:
+            - ip: 10.118.122.18
+              prefix-length: 23
+        ipv6:
+          enabled: false
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 10.118.122.254
+          next-hop-interface: bond0.1122
+    dns-resolver:
+      config:
+        server:
+          - 10.118.200.12
+          - 10.113.200.12
+    interfaces:
+      - name: enp34s0f0np0
+        macAddress: 8c:84:74:c3:68:50
+      - name: enp34s0f1np1
+        macAddress: 8c:84:74:c3:68:51
+      - name: enp34s0f2np2
+        macAddress: 8c:84:74:c3:68:52
+      - name: enp34s0f3np3
+        macAddress: 8c:84:74:c3:68:53
+      - name: enp139s0f0np0
+        macAddress: 14:23:f3:23:c4:10
+      - name: enp139s0f1np1
+        macAddress: 14:23:f3:23:c4:11
