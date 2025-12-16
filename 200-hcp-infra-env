@@ -43,3 +43,85 @@ rules:
       - agent-install.openshift.io
     resources:
       - agents
+
+
+
+
+========
+
+
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  creationTimestamp: "2025-12-15T23:01:04Z"
+  generation: 1
+  labels:
+    agent-install.openshift.io/nodepool: pai-gpu1-worker
+    app.kubernetes.io/instance: hcp-provisioning-infra
+    target-host: pai-gpu1-wn01
+  name: pai-gpu1-wn01-config
+  namespace: hcp-auh-kdc-pcs-hub-clu02
+  resourceVersion: "9041284"
+  uid: bfd4905b-bd00-4baf-a234-3bf2060fdd38
+spec:
+  config:
+    dns-resolver:
+      config:
+        server:
+        - 10.118.200.12
+        - 10.113.200.12
+    interfaces:
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      mtu: 9000
+      name: enp31s0f0np0
+      state: up
+      type: ethernet
+    - ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      mtu: 9000
+      name: enp31s0f1np1
+      state: up
+      type: ethernet
+    - description: LACP Bond for pai-gpu1 Workers
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      link-aggregation:
+        mode: 802.3ad
+        options:
+          lacp_rate: fast
+          miimon: "100"
+          xmit_hash_policy: layer2+3
+        ports:
+        - enp31s0f0np0
+        - enp31s0f1np1
+      mtu: 9000
+      name: bond0
+      state: up
+      type: bond
+    - ipv4:
+        address:
+        - ip: 10.118.122.21
+          prefix-length: 23
+        dhcp: false
+        enabled: true
+      ipv6:
+        enabled: false
+      name: bond0.1122
+      state: up
+      type: vlan
+      vlan:
+        base-iface: bond0
+        id: 1122
+    routes:
+      config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 10.118.122.254
+        next-hop-interface: bond0.1122
+
