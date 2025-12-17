@@ -1,0 +1,73 @@
+REPLACE API Certificate
+---------------------------
+
+oc login -u kubeadmin -p <password> https://FQDN:6443
+oc config view --flatten > kubeconfig-newapi
+
+Create a secret that contains the certificate chain and private key in the openshift-config namespace.
+oc create secret tls <secret> \
+     --cert=</path/to/cert.crt> \
+     --key=</path/to/cert.key> \
+     -n openshift-config
+	 
+oc patch apiserver cluster \
+     --type=merge -p \
+     '{"spec":{"servingCerts": {"namedCertificates": \
+     [{"names": ["<FQDN>"], \
+     "servingCertificate": {"name": "<secret>"}}]}}}'
+
+REPLACE INGRESS Certificate
+==================================
+
+oc create configmap custom-ca \
+     --from-file=ca-bundle.crt=</path/to/example-ca.crt> \
+     -n openshift-config  ---> Only root cert 
+	
+Update the cluster-wide proxy configuration with the newly created config map [NOT APPLICABLE FOR A HOSTED CLUSTER]:
+oc patch proxy/cluster \
+     --type=merge \
+     --patch='{"spec":{"trustedCA":{"name":"custom-ca"}}}'
+
+Create a secret that contains the wildcard certificate chain and key:
+
+oc create secret tls <secret> \
+     --cert=</path/to/cert.crt> \
+     --key=</path/to/cert.key> \
+     -n openshift-ingress
+	 
+
+Update the Ingress Controller configuration with the newly created secret:
+
+oc patch ingresscontroller.operator default \
+     --type=merge -p \
+     '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' \
+     -n openshift-ingress-operator
+	 
+	 
+
+----Use the below to update the additionalTrustBundle for hosted cluster----
+===========================================================================	 
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+[...]
+spec:
+  additionalTrustBundle:
+    - name: <configmap-name>	 
+
+Replace API Certificate of a Hosted CLUSTER
+---------------------------------------------
+
+oc create secret tls sample-hosted-kas-custom-cert \
+  --cert=path/to/cert.crt \
+  --key=path/to/key.key \
+  -n <hosted_cluster_namespace>
+  
+spec:
+  configuration:
+    apiServer:
+      servingCerts:
+        namedCertificates:
+        - names: 
+          - api-custom-cert-sample-hosted.sample-hosted.example.com
+          servingCertificate: 
+            name: sample-hosted-kas-custom-cert
