@@ -37,3 +37,7 @@ openssl req -out ocp.csr -newkey rsa:2048 -nodes -keyout ocp.key -config sslconf
 oc get configmap kube-root-ca.crt -n openshift-config -o jsonpath='{.data.ca\.crt}' > ocp-api-ca.crt
 
 oc extract secret/$(oc get ingresscontroller -n openshift-ingress-operator default -o json | jq '.spec.defaultCertificate.name // "router-certs-default"' -r) -n openshift-ingress --confirm
+
+
+openssl s_client -connect server.example.com:443 </dev/null 2>/dev/null \
+| openssl x509 -noout -text
