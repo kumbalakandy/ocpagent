@@ -31,3 +31,9 @@ DNS.12 = thanos-querier-openshift-monitoring.apps.cluster01.kodevirtual.com
 
 
 openssl req -out ocp.csr -newkey rsa:2048 -nodes -keyout ocp.key -config sslconfig.cfg -sha256
+
+
+
+oc get configmap kube-root-ca.crt -n openshift-config -o jsonpath='{.data.ca\.crt}' > ocp-api-ca.crt
+
+oc extract secret/$(oc get ingresscontroller -n openshift-ingress-operator default -o json | jq '.spec.defaultCertificate.name // "router-certs-default"' -r) -n openshift-ingress --confirm
