@@ -447,4 +447,10 @@ oc -n <namespace> create secret generic extra-ca-certificate-config-bundle-secre
 
 (&(objectClass=user)(memberOf:1.2.840.113556.1.4.1941:=CN=Target Group Name,OU=Groups,DC=example,DC=com))
 
+
+
+CN=quay-groups,OU=ocp,DC=kodevirtual,DC=com
+
+CN=quay-group1,CN=Users,DC=kodevirtual,DC=com
+
 3YRW68Q40HIXTWJX7EB42ZQJID8MG4J7
