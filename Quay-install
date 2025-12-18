@@ -445,6 +445,6 @@ oc -n <namespace> create secret generic extra-ca-certificate-config-bundle-secre
   --from-file=extra_ca_cert_<name-of-certificate-three>=<path/to/certificate_three> \
   --dry-run=client -o yaml > extra-ca-certificate-config-bundle-secret.yaml
 
-
+(&(objectClass=user)(memberOf:1.2.840.113556.1.4.1941:=CN=Target Group Name,OU=Groups,DC=example,DC=com))
 
 3YRW68Q40HIXTWJX7EB42ZQJID8MG4J7
