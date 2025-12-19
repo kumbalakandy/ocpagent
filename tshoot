@@ -6,3 +6,25 @@ openssl s_client -proxy your.proxy:3128 -connect rhcos.mirror.openshift.com:443 
 
 
 https://access.redhat.com/solutions/6998303
+
+
+    Type:                  ValidReleaseImage
+    Last Transition Time:  2025-12-19T08:49:56Z
+    Message:               HostedCluster is at expected version
+    Observed Generation:   3
+    Reason:                AsExpected
+    Status:                False
+    Type:                  Progressing
+    Last Transition Time:  2025-12-19T08:49:56Z
+    Message:               failed to reconcile Agent RoleBinding: rolebindings.rbac.authorization.k8s.io "capi-provider-role" not found
+    Observed Generation:   3
+    Reason:                PlatformCredentialsNotFound
+    Status:                False
+    Type:                  PlatformCredentialsFound
+    Last Transition Time:  2025-12-19T09:01:03Z
+    Message:               failed to reconcile platform credentials: failed to reconcile Agent RoleBinding: rolebindings.rbac.authorization.k8s.io "capi-provider-role" not found
+    Observed Generation:   3
+    Reason:                ReconciliationError
+    Status:                False
+    Type:                  ReconciliationSucceeded
+
