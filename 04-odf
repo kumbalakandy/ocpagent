@@ -444,3 +444,110 @@ oc get localvolumediscoveryresults.local.storage.openshift.io \
 
 
 https://access.redhat.com/articles/6525111?extIdCarryOver=true&percmp=7015Y0000048OFsQAM&sc_cid=7013a0000026OSVAA2
+
+
+
+
+apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  annotations:
+    cluster.ocs.openshift.io/local-devices: "true"
+    uninstall.ocs.openshift.io/cleanup-policy: delete
+    uninstall.ocs.openshift.io/mode: graceful
+  creationTimestamp: "2025-09-17T14:10:52Z"
+  finalizers:
+  - storagecluster.ocs.openshift.io
+  generation: 9
+  name: ocs-storagecluster
+  namespace: openshift-storage
+  resourceVersion: "302580582"
+  uid: a2dcdce3-6e5d-4ab9-ba78-688e1aebaa71
+spec:
+  arbiter: {}
+  enableCephTools: true
+  encryption:
+    clusterWide: true
+    enable: true
+    keyRotation:
+      schedule: '@weekly'
+    kms: {}
+  externalStorage: {}
+  flexibleScaling: true
+  managedResources:
+    cephBlockPools:
+      defaultStorageClass: false
+    cephCluster:
+      monCount: 5
+    cephConfig: {}
+    cephDashboard: {}
+    cephFilesystems:
+      additionalDataPools:
+      - compressionMode: none
+        name: replica2
+        replicated:
+          size: 2
+    cephNonResilientPools: {}
+    cephObjectStoreUsers: {}
+    cephObjectStores: {}
+    cephRBDMirror: {}
+    cephToolbox: {}
+  monDataDirHostPath: /var/lib/rook
+  multiCloudGateway:
+    endpoints:
+      maxCount: 10
+      minCount: 3
+  network:
+    connections:
+      encryption:
+        enabled: true
+    multiClusterService: {}
+  nfs:
+    enable: true
+  nodeTopologies: {}
+  resourceProfile: performance
+  resources:
+    noobaa-core:
+      limits:
+        cpu: "3"
+        memory: 4Gi
+      requests:
+        cpu: "3"
+        memory: 4Gi
+    noobaa-db:
+      limits:
+        cpu: "3"
+        memory: 4Gi
+      requests:
+        cpu: "3"
+        memory: 4Gi
+    noobaa-db-vol:
+      requests:
+        storage: 200Gi
+    noobaa-endpoint:
+      limits:
+        cpu: "3"
+        memory: 4Gi
+      requests:
+        cpu: "3"
+        memory: 4Gi
+  storageDeviceSets:
+  - config: {}
+    count: 28
+    dataPVCTemplate:
+      metadata: {}
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: "1"
+        storageClassName: sc-local-storage-odf
+        volumeMode: Block
+      status: {}
+    name: ocs-deviceset-sc-local-storage-odf
+    placement: {}
+    preparePlacement: {}
+    replica: 1
+    resources: {}
+
