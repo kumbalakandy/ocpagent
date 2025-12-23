@@ -30,3 +30,4 @@ https://access.redhat.com/solutions/6998303
 
 
 https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/mig-ocp.html
+--image=registry.redhat.io/rhacm2/acm-must-gather-rhel9:v[ACM_version] |& tee must-gather-collect.log
