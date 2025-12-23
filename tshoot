@@ -35,3 +35,16 @@ https://docs.nvidia.com/datacenter/cloud-native/openshift/latest/mig-ocp.html
 
 oc patch installplan <installplan-name> -n <namespace> --type merge --patch '{"spec":{"approved":true}}'
 
+podman run --entrypoint performance-profile-creator \
+    -v /path/to/must-gather:/must-gather:z \
+    registry.redhat.io/openshift4/ose-cluster-node-tuning-rhel9-operator:v4.19 \
+    --must-gather-dir-path /must-gather \
+    --reserved-cpu-count=2 \
+    --rt-kernel=false \
+    --split-reserved-cpus-across-numa=false \
+    --topology-manager-policy=single-numa-node \
+    --node-pool-name=democluster-us-east-1a \
+    --power-consumption-mode=ultra-low-latency \
+    --offlined-cpu-count=1 \
+    > my-hosted-cp-performance-profile.yaml
+
