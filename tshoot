@@ -55,3 +55,23 @@ metadata:
 spec:
   imageSpec: "registry.redhat.io/openshift4/noderesourcetopology-scheduler-rhel9:v4.19" 
 
+
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: <new-pvc-name>
+  namespace: <target-project>
+spec:
+  source:
+    pvc:
+      namespace: <source-project>
+      name: <source-pvc-name>
+  pvc:
+    accessModes:
+      - ReadWriteOnce # Or the appropriate access mode for your needs
+    resources:
+      requests:
+        storage: <size-of-new-pvc> # e.g., 20Gi (can be the same size or larger)
+    storageClassName: <storage-class-name> # Optional: specify a storage class
+
+
