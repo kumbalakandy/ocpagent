@@ -48,3 +48,10 @@ podman run --entrypoint performance-profile-creator \
     --offlined-cpu-count=1 \
     > my-hosted-cp-performance-profile.yaml
 
+apiVersion: nodetopology.openshift.io/v1
+kind: NUMAResourcesScheduler
+metadata:
+  name: numaresourcesscheduler
+spec:
+  imageSpec: "registry.redhat.io/openshift4/noderesourcetopology-scheduler-rhel9:v4.19" 
+
