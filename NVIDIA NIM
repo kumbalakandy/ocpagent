@@ -1,0 +1,28 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nvidia-nim
+  labels:
+    openshift.io/cluster-monitoring: "true"
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: nvidia-nim
+  namespace: nvidia-nim
+spec:
+  upgradeStrategy: Default
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: nim-operator-certified
+  namespace: nvidia-nim
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: nim-operator-certified
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: nim-operator-certified.v3.0.2
