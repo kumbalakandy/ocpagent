@@ -454,3 +454,136 @@ CN=quay-groups,OU=ocp,DC=kodevirtual,DC=com
 CN=quay-group1,CN=Users,DC=kodevirtual,DC=com
 
 3YRW68Q40HIXTWJX7EB42ZQJID8MG4J7
+
+
+
+oc -n <namespace> create secret generic extra-ca-certificate-config-bundle-secret \
+  --from-file=config.yaml=</path/to/config.yaml> \
+  --from-file=extra_ca_cert_<name-of-certificate-one>=<path/to/certificate_one> \
+  --from-file=extra_ca_cert_<name-of-certificate-two>=<path/to/certificate_two> \
+  --from-file=extra_ca_cert_<name-of-certificate-three>=<path/to/certificate_three> \
+  --dry-run=client -o yaml > extra-ca-certificate-config-bundle-secret.yaml
+
+
+
+
+
+
+ALLOW_PULLS_WITHOUT_STRICT_LOGGING: false
+AUTHENTICATION_TYPE: LDAP
+DEFAULT_TAG_EXPIRATION: 2w
+SERVER_HOSTNAME:
+FEATURE_USER_INITIALIZE: true 
+SUPER_USERS: 
+     -  arasheed@kodevirtual.com
+BROWSER_API_CALLS_XHR_ONLY: false 
+FEATURE_USER_CREATION: true
+FEATURE_BUILD_SUPPORT: false
+FEATURE_DIRECT_LOGIN: true
+FEATURE_MAILING: false
+REGISTRY_TITLE: Red Hat Quay
+REGISTRY_TITLE_SHORT: Red Hat Quay
+SETUP_COMPLETE: true
+TAG_EXPIRATION_OPTIONS:
+- 2w
+- 1w
+- 1d
+- 2d
+- 3d
+TEAM_RESYNC_STALE_TIME: 60m
+TESTING: false
+FEATURE_FIPS:  true
+FEATURE_PROXY_CACHE: true
+FEATURE_SUPERUSERS_FULL_ACCESS: true
+FEATURE_QUOTA_MANAGEMENT: true
+DEFAULT_SYSTEM_REJECT_QUOTA_BYTES: "250gb"
+QUOTA_BACKFILL: true
+QUOTA_TOTAL_DELAY_SECONDS: 3600
+PERMANENTLY_DELETE_TAGS: true
+RESET_CHILD_MANIFEST_EXPIRATION: true
+FEATURE_REPO_MIRROR: true
+LDAP_ADMIN_DN: "CN=Quay SVC,OU=service_admin,DC=kodevirtual,DC=com"
+LDAP_ADMIN_PASSWD: "P@ssw0rd"
+LDAP_ALLOW_INSECURE_FALLBACK: false
+LDAP_BASE_DN:
+    - dc=kodevirtual
+    - dc=com
+LDAP_EMAIL_ATTR: mail
+LDAP_UID_ATTR: userPrincipalName
+LDAP_URI: ldaps://lab-dc.kodevirtual.com
+LDAP_USER_FILTER: (memberOf=CN=quay users,CN=Users,DC=kodevirtual,DC=com)
+LDAP_SUPERUSER_FILTER: (memberOf=CN=Quay Admins,CN=Users,DC=kodevirtual,DC=com)
+
+
+apiVersion: quay.redhat.com/v1
+kind: QuayRegistry
+metadata:
+  name: quay
+  namespace: registry
+spec:
+  components:
+    - kind: clair
+      managed: false
+    - kind: postgres
+      managed: true
+      overrides:
+        resources:
+          limits:
+            cpu: '8'
+            memory: 32Gi
+          requests:
+            cpu: '4'
+            memory: 24Gi
+    - kind: mirror
+      managed: true
+      overrides:
+        resources:
+          requests:
+            cpu: '2'
+            memory: 2Gi
+    - kind: quay
+      managed: true
+      overrides:
+        resources:
+          limits:
+            cpu: '4'
+            memory: 10Gi
+          requests:
+            cpu: '4'
+            memory: 10Gi
+    - kind: clairpostgres
+      managed: false
+    - kind: redis
+      managed: true
+    - kind: objectstorage
+      managed: true
+    - kind: horizontalpodautoscaler
+      managed: true
+    - kind: route
+      managed: true
+    - kind: monitoring
+      managed: true
+    - kind: tls
+      managed: true
+  configBundleSecret: config-bundle-secret
+
+
+
+
+
+(&(objectClass=user)(memberOf:1.2.840.113556.1.4.1941:=CN=quay-groups,OU=ocp,DC=kodevirtual,DC=com))
+
+
+"Display name:
+hub-ph-ocp-wld-sa
+Useraccount:
+svcphocpwld
+
+ 
+ThisUserForPH3@lth
+CN=hub-ph-ocp-wld,OU=Service Accounts-Local,DC=purehealth,DC=local"
+
+
+
+CN=hub-ph-ocp-admin,OU=HUB-PH-OCPOU,DC=purehealth,DC=local
+
