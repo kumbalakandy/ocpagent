@@ -97,3 +97,23 @@ spec:
           state: present
   nodeSelector:
     node-role.kubernetes.io/worker: ''
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-iommu-config
+  namespace: hcp-auh-kdc-pcs-hub-clu02
+data:
+  config: |
+    apiVersion: machineconfiguration.openshift.io/v1
+    kind: MachineConfig
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: worker
+      name: 99-gpu-iommu-parameters
+    spec:
+      kernelArguments:
+        - intel_iommu=on
+        - iommu=pt
+
