@@ -587,3 +587,13 @@ CN=hub-ph-ocp-wld,OU=Service Accounts-Local,DC=purehealth,DC=local"
 
 CN=hub-ph-ocp-admin,OU=HUB-PH-OCPOU,DC=purehealth,DC=local
 
+Display name:
+hub-pc-ocp-wld-sa
+Useraccount:
+svcpcocpwld
+ 
+Password:
+ThisUserForPCl0ud
+ 
+Dn:
+CN=hub-pc-ocp-wld-sa,OU=Service Accounts,DC=purecloud,DC=ae
