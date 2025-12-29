@@ -132,3 +132,9 @@ spec:
       - scopeName: "Node"
         operator: "In"
         values: ["feature.node.kubernetes.io/pci-10de.label.t4"] 
+
+
+
+https://console-openshift-console.apps.auh-kdc-pcs-hub-clu02.purecloud.ae/
+
+https://10.118.121.43:6443
