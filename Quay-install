@@ -574,26 +574,3 @@ spec:
 (&(objectClass=user)(memberOf:1.2.840.113556.1.4.1941:=CN=quay-groups,OU=ocp,DC=kodevirtual,DC=com))
 
 
-"Display name:
-hub-ph-ocp-wld-sa
-Useraccount:
-svcphocpwld
-
- 
-ThisUserForPH3@lth
-CN=hub-ph-ocp-wld,OU=Service Accounts-Local,DC=purehealth,DC=local"
-
-
-
-CN=hub-ph-ocp-admin,OU=HUB-PH-OCPOU,DC=purehealth,DC=local
-
-Display name:
-hub-pc-ocp-wld-sa
-Useraccount:
-svcpcocpwld
- 
-Password:
-ThisUserForPCl0ud
- 
-Dn:
-CN=hub-pc-ocp-wld-sa,OU=Service Accounts,DC=purecloud,DC=ae
