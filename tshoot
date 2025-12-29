@@ -117,3 +117,18 @@ data:
         - intel_iommu=on
         - iommu=pt
 
+---
+# gpu-t4-quota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: gpu-t4-quota
+  namespace: namespace
+spec:
+  hard:
+    requests.nvidia.com/gpu: "2"
+  scopeSelector:
+    matchExpressions:
+      - scopeName: "Node"
+        operator: "In"
+        values: ["feature.node.kubernetes.io/pci-10de.label.t4"] 
