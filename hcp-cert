@@ -1,0 +1,66 @@
+oc create secret tls sample-hosted-kas-custom-cert \
+  --cert=path/to/cert.crt \
+  --key=path/to/key.key \
+  -n <hosted_cluster_namespace>
+  
+  
+spec:
+  configuration:
+    apiServer:
+      servingCerts:
+        namedCertificates:
+        - names: 
+          - api-custom-cert-sample-hosted.sample-hosted.example.com
+          servingCertificate: 
+            name: sample-hosted-kas-custom-cert
+			
+			
+custom DNS
+
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: <hosted_cluster_name>
+  namespace: <hosted_cluster_namespace>
+spec:
+  configuration:
+    apiServer:
+      servingCerts:
+        namedCertificates:
+        - names: 
+          - api-custom-cert-sample-hosted.sample-hosted.example.com
+          servingCertificate: 
+            name: sample-hosted-kas-custom-cert
+  kubeAPIServerDNSName: api-custom-cert-sample-hosted.sample-hosted.example.com 
+# ...
+
+
+
+
+kubectl get secret hcp01-custom-admin-kubeconfig   -n hcp01   -o jsonpath='{.data.kubeconfig}' | base64 -d > hosted-kubeconfig
+
+
+==============================
+
+oc create configmap custom-ca \
+     --from-file=ca-bundle.crt=</path/to/example-ca.crt> \
+     -n <hcp-ns-on-hub>
+
+oc edit hostedclusters.hypershift.openshift.io -n <hcp-ns-on-hub> <hosted-cluster>
+
+  spce: 
+    additionalTrustBundle:
+      - name: custom-ca 
+	  
+	  
+
+oc create secret tls <secret> \
+     --cert=</path/to/cert.crt --complete-chain> \
+     --key=</path/to/cert.key> \
+     -n openshift-ingress
+
+
+oc --kubeconfig <path-to-hosted-cluster-kubeconfig> patch ingresscontroller.operator default \
+     --type=merge -p \
+     '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' \
+     -n openshift-ingress-operator
