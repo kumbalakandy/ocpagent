@@ -81,4 +81,15 @@ oc patch ingresscontroller.operator default \
      --type=merge -p \
      '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' \
      -n openshift-ingress-operator
-
+---
+spec:
+configuration:
+ apiServer:
+    audit:
+      profile: Default
+    servingCerts:
+      namedCertificates:
+      - names:
+        - oauth-clusters-<clustername>.<acm domain> # Replace <clustername> and <base_domain> with the specific values
+        servingCertificate:
+           name: default-ingress # This refers to the name of the secret containing the certificate
