@@ -64,3 +64,21 @@ oc --kubeconfig <path-to-hosted-cluster-kubeconfig> patch ingresscontroller.oper
      --type=merge -p \
      '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' \
      -n openshift-ingress-operator
+
+
+----
+Create a secret that contains the wildcard certificate chain and key:
+
+oc create secret tls <secret> \
+     --cert=</path/to/cert.crt> \
+     --key=</path/to/cert.key> \
+     -n openshift-ingress
+	 
+
+Update the Ingress Controller configuration with the newly created secret:
+
+oc patch ingresscontroller.operator default \
+     --type=merge -p \
+     '{"spec":{"defaultCertificate": {"name": "<secret>"}}}' \
+     -n openshift-ingress-operator
+
