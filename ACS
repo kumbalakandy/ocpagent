@@ -1,0 +1,34 @@
+apiVersion: platform.stackrox.io/v1alpha1
+kind: Central
+metadata:
+  name: stackrox-central-services
+  namespace: gitops-configure
+spec:
+  network:
+    policies: Enabled
+  central:
+    resources:
+      limits:
+        cpu: '6'
+        memory: 16Gi
+      requests:
+        cpu: '6'
+        memory: 16Gi
+    exposure:
+      route:
+        reencrypt:
+          enabled: true
+        enabled: true
+        host: central.apps.auh-kdc-pcs-hub-clu01.purecloud.ae
+    monitoring:
+      exposeEndpoint: Enabled
+    db:
+      resources:
+        limits:
+          cpu: '32'
+          memory: 32Gi
+        requests:
+          cpu: '32'
+          memory: 32Gi
+  scanner:
+    scannerComponent: Enabled
