@@ -107,3 +107,31 @@ spec:
         requests:
           cpu: '3'
           memory: 1.7Gi
+---
+apiVersion: platform.stackrox.io/v1alpha1
+kind: SecuredCluster
+metadata:
+  annotations:
+    feature-defaults.platform.stackrox.io/admissionControllerEnforcement: Enabled
+    feature-defaults.platform.stackrox.io/scannerV4: AutoSense
+  name: stackrox-secured-cluster-services
+  namespace: stackrox
+spec:
+  admissionControl:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 600Mi
+      requests:
+        cpu: 500m
+        memory: 600Mi
+  centralEndpoint: 'central.stackrox.svc:443'
+  clusterName: management-cluster
+  sensor:
+    resources:
+      limits:
+        cpu: '1'
+        memory: 500Mi
+      requests:
+        cpu: '1'
+        memory: 500Mi
