@@ -32,3 +32,78 @@ spec:
           memory: 32Gi
   scanner:
     scannerComponent: Enabled
+---
+apiVersion: platform.stackrox.io/v1alpha1
+kind: Central
+metadata:
+  name: stackrox-central-services
+  namespace: stackrox
+spec:
+  network:
+    policies: Enabled
+  central:
+    resources:
+      limits:
+        cpu: '6'
+        memory: 16Gi
+      requests:
+        cpu: '6'
+        memory: 16Gi
+    exposure:
+      route:
+        reencrypt:
+          enabled: true
+        enabled: true
+        host: central.apps.auh-kdc-pcs-hub-clu01.purecloud.ae
+    monitoring:
+      exposeEndpoint: Enabled
+    db:
+      resources:
+        limits:
+          cpu: '32'
+          memory: 32Gi
+        requests:
+          cpu: '32'
+          memory: 32Gi
+  egress:
+    connectivityPolicy: Online
+  scanner:
+    analyzer:
+      resources:
+        limits:
+          cpu: '2'
+          memory: 2.5Gi
+        requests:
+          cpu: '2'
+          memory: 2.5Gi
+      scaling:
+        autoScaling: Enabled
+        maxReplicas: 5
+        minReplicas: 2
+        replicas: 3
+    scannerComponent: Enabled
+  scannerV4:
+    db:
+      resources:
+        limits:
+          cpu: '8'
+          memory: 6Gi
+        requests:
+          cpu: '8'
+          memory: 6Gi
+    indexer:
+      resources:
+        limits:
+          cpu: '6'
+          memory: 1.5Gi
+        requests:
+          cpu: '6'
+          memory: 1.5Gi
+    matcher:
+      resources:
+        limits:
+          cpu: '3'
+          memory: 1.7Gi
+        requests:
+          cpu: '3'
+          memory: 1.7Gi
