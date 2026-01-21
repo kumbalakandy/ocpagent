@@ -1,0 +1,39 @@
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: nginx-ingress
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: nginx-ingress
+  namespace: nginx-ingress
+spec:
+  upgradeStrategy: Default
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: nginx-ingress-operator
+  namespace: nginx-ingress
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: nginx-ingress-operator
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+
+---
+Pull Secret
+
+kubectl create secret docker-registry nginx-plus-registry \
+  --docker-server=private-registry.nginx.com \
+  --docker-username='eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6InYxIiwiamt1IjoiaHR0cHM6Ly9wcm9kdWN0LmFwaXMuZjUuY29tL2VlL3YxL2tleXMvandrcyJ9.eyJzdWIiOiJGTkktM2RhMWE3OGEtMTlmNy00M2Y2LWE5MWUtMjcyMDQ3NTlmYjEyIiwiaWF0IjoxNzY2OTQ3ODAwLCJpc3MiOiJGNSBJbmMuIiwiYXVkIjoidXJuOmY1OnRlZW0iLCJqdGkiOiIwMzRlYzBkMC1lNDFlLTExZjAtYmYyNC00M2ExN2E0N2E2NDAiLCJmNV9vcmRlcl90eXBlIjoiZXZhbCIsImY1X3NhdCI6MTc2OTUzOTgwMH0.f1wGkU5W0s-UDEVkxzXGRu1fQZ6VulPwzAE6aje-7LOytpziEFk8YPXKhE9gFHaOoye7LS4HwW9kJoSREPlfQdfpwpyoUBLdec1mZ3Y587ahPr_E1J9vQMIneeRl0wIlgTJBT-toNdHfd0frhV7SeNYJN8a7CVMabD6f665JcZE7HF4ADoIVYRdwaWVkzkhiBmyR84Yl46NrWOAYWxLKsuCJbqkts4kc4a2a80iAWeLm3XDhUsP1oLkAOHQPuwpSK4ysIqSO2MUYdINVer0TnBLAQtSF1zsqtxrxb6Jnx9y9ce49UlrMz8UFtsp4Ku12K4iT9vI3bZ7A9ycsDPnJiO6AbQvHZvWxUcA0gc5Ch5we9vOvfIkHwVVxlyBVg1LS131g4xJuLA6-HRrlcbdFl3MoD2BX-NvSzQ5Sfj2OrJeVCk0Y7Mwc6IquucPocfXw-ghUBmzv2A7CWk79kGv8srPBUmesLXNjreKTPImn2xCgROPysdyl3B0xpoS4HsmUESPNxYbStge7VWPilj1dI2h5WGE6J5sSMvLGZ19nUlkZPTJ7Q9E44wY8jI1ib9nG_4SykbWZZjvaJxBBNippedSa1309OWJvVblFKoB5hBIywiOzYCShKAW8y2LFwgeA9oJHbbxgcaHwqIp7o0GlHDxx77e_oaFJyszW7FFUV6g' \
+  --docker-password='none' \
+  -n nginx-inc-test
+
+kubectl create secret generic license-token --from-file=license.jwt=<path-to-your-jwt> --type=nginx.com/license -n <your-namespace>
+
+docker login private-registry.nginx.com --username=<output_of_jwt_token> --password=none
+
